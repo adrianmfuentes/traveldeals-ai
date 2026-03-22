@@ -81,7 +81,7 @@ export default function DealsSection({ alertId }: DealsSectionProps) {
       </div>
 
       {loading && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2">
           {[1, 2, 3].map((i) => (
             <div
               key={i}
@@ -109,7 +109,7 @@ export default function DealsSection({ alertId }: DealsSectionProps) {
       )}
 
       {!loading && !error && deals.length > 0 && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2">
           {deals.map((deal) => (
             <DealCard
               key={deal.id}

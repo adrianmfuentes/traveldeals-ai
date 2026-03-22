@@ -3,8 +3,9 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
-import { LogOut, Plane } from "lucide-react";
+import { Plane } from "lucide-react";
 import DashboardNav from "@/components/dashboard/DashboardNav";
+import SignOutButton from "@/components/SignOutButton";
 import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 
@@ -49,13 +50,7 @@ export default async function DashboardLayout({
                   {session.user.name ?? session.user.email}
                 </span>
               </div>
-              <Link
-                href="/api/auth/signout"
-                className="flex items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-100 px-2.5 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border border-transparent hover:border-slate-200 dark:hover:border-slate-700"
-              >
-                <LogOut size={13} />
-                <span className="hidden sm:inline">{t("signOut")}</span>
-              </Link>
+              <SignOutButton label={t("signOut")} />
             </div>
           </div>
         </div>
