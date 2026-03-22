@@ -1,0 +1,33 @@
+# Dependencies (installed fresh in container)
+node_modules
+
+# Build output
+.next
+dist
+build
+
+# Dev / local files
+.env
+.env.local
+.env.*.local
+.claude/
+reports/
+
+# Source control
+.git
+.gitignore
+
+# Docs & scripts (not needed at runtime)
+*.md
+scripts/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Test artifacts
+coverage/

@@ -1,0 +1,32 @@
+# =============================================================================
+# TravelDeals AI — Background worker
+# =============================================================================
+
+FROM node:20-alpine AS deps
+RUN apk add --no-cache libc6-compat openssl
+WORKDIR /app
+
+COPY package.json package-lock.json* ./
+COPY prisma ./prisma/
+
+RUN npm ci --ignore-scripts
+RUN npx prisma generate
+
+# ── Runner ────────────────────────────────────────────────────────────────────
+FROM node:20-alpine AS runner
+RUN apk add --no-cache libc6-compat openssl
+
+WORKDIR /app
+
+ENV NODE_ENV=production
+
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser  --system --uid 1001 worker
+
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/node_modules/.prisma ./node_modules/.prisma
+COPY . .
+
+USER worker
+
+CMD ["node", "--import", "tsx/esm", "worker/src/index.ts"]
