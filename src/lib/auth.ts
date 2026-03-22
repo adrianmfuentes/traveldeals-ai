@@ -6,6 +6,18 @@ import { prisma } from "@/lib/prisma";
 export const authOptions: NextAuthOptions = {
   session: {
     strategy: "jwt",
+    maxAge: 8 * 60 * 60, // 8 hours
+    updateAge: 60 * 60,  // Refresh token every hour
+  },
+  cookies: {
+    sessionToken: {
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+      },
+    },
   },
   providers: [
     CredentialsProvider({

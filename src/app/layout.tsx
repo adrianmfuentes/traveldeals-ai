@@ -7,7 +7,7 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "TravelDeals AI",
-  description: "Encuentra chollos de viajes procesados con IA",
+  description: "Monitoriza vuelos y hoteles con inteligencia artificial. Recibe alertas con las mejores ofertas de viaje.",
 };
 
 export default function RootLayout({

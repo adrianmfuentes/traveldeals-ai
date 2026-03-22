@@ -1,10 +1,10 @@
 // Set up environment variables for tests
 process.env.DATABASE_URL = "postgresql://test:test@localhost:5432/traveldeals_test";
 process.env.REDIS_URL = "redis://localhost:6379";
-process.env.ANTHROPIC_API_KEY = "sk-ant-test-key";
+process.env.GROQ_API_KEY = "gsk_test_key";
 process.env.NEXTAUTH_SECRET = "test-secret-for-testing-only";
 process.env.NEXTAUTH_URL = "http://localhost:3000";
-process.env.NODE_ENV = "test";
+// NODE_ENV is set by vitest config (environment: "node") automatically
 
 // Optional vars
 process.env.AMADEUS_CLIENT_ID = "test-amadeus-id";

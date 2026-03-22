@@ -11,7 +11,7 @@ Plataforma SaaS que busca chollos de viajes automáticamente, los procesa con IA
 - **Worker**: Proceso separado con BullMQ + Redis para jobs de búsqueda
 - **Base de datos**: PostgreSQL + Prisma ORM
 - **IA**: Anthropic Claude API (Sonnet) para análisis de ofertas e itinerarios
-- **Proveedores de vuelos**: Amadeus API, Kiwi Tequila API (patrón provider con fallback)
+- **Proveedores de vuelos**: SerpApi (Google Flights)
 
 ## Estructura del proyecto
 
@@ -35,7 +35,7 @@ traveldeals-ai/
 │   ├── src/
 │   │   ├── index.ts            # Entry point: BullMQ worker + scheduler
 │   │   ├── jobs/               # Procesadores de jobs
-│   │   ├── providers/          # Proveedores de vuelos (Amadeus, Kiwi)
+│   │   ├── providers/          # Proveedores de vuelos (SerpApi)
 │   │   └── services/           # Servicios (AI analyzer)
 │   └── tsconfig.json
 ├── prisma/
@@ -64,11 +64,7 @@ Copiar `.env.example` a `.env` y rellenar:
 - `DATABASE_URL` — Conexión PostgreSQL
 - `REDIS_URL` — Conexión Redis
 - `ANTHROPIC_API_KEY` — API key de Anthropic (obligatoria)
-- `AMADEUS_CLIENT_ID` / `AMADEUS_CLIENT_SECRET` — API de Amadeus (opcional)
-- `KIWI_API_KEY` — API de Kiwi Tequila (opcional)
-- `SERPAPI_API_KEY` — SerpApi para Google Flights (opcional)
-
-Al menos un proveedor de vuelos debe estar configurado.
+- `SERPAPI_API_KEY` — SerpApi para Google Flights (obligatoria)
 
 ## Modelos de datos clave
 

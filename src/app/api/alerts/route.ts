@@ -5,17 +5,19 @@ import { prisma } from "@/lib/prisma";
 import { rateLimit, getIdentifier } from "@/lib/rate-limit";
 import { z } from "zod";
 
+const VALID_CURRENCIES = ["EUR", "USD", "GBP", "CHF", "JPY", "CAD", "AUD"] as const;
+
 const createAlertSchema = z.object({
-  origin: z.string().length(3, "Debe ser un código IATA de 3 letras"),
-  destinations: z.array(z.string().length(3)).default([]),
+  origin: z.string().min(2).max(100),
+  destinations: z.array(z.string().min(2).max(100)).max(10).default([]),
   passengers: z.number().int().min(1).max(10).default(1),
   dateFrom: z.string().datetime(),
   dateTo: z.string().datetime(),
-  tripDurationMin: z.number().int().min(1).optional(),
-  tripDurationMax: z.number().int().min(1).optional(),
-  maxBudget: z.number().positive().optional(),
-  currency: z.string().length(3).default("EUR"),
-  frequencyMinutes: z.number().int().min(60).default(720),
+  tripDurationMin: z.number().int().min(1).max(365).optional(),
+  tripDurationMax: z.number().int().min(1).max(365).optional(),
+  maxBudget: z.number().positive().max(1_000_000).optional(),
+  currency: z.enum(VALID_CURRENCIES).default("EUR"),
+  frequencyMinutes: z.number().int().min(60).max(10080).default(720), // max 1 week
 });
 
 // GET /api/alerts — Listar alertas del usuario

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { MapPin, Users, Calendar, Clock, Trash2, Bell, BellOff, Tag } from "lucide-react";
+import { MapPin, Users, Calendar, Clock, Trash2, Bell, BellOff, Tag, ArrowRight } from "lucide-react";
 
 interface SearchAlertWithCount {
   id: string;
@@ -69,86 +69,90 @@ export default function AlertCard({ alert, onUpdate }: AlertCardProps) {
     year: "numeric",
   });
 
+  const destination =
+    alert.destinations.length > 0 ? alert.destinations.join(", ") : "Cualquier destino";
+
   return (
     <div
-      className={`bg-white rounded-xl border p-5 transition-all ${
+      className={`bg-white rounded-xl border transition-all ${
         alert.isActive
           ? "border-slate-200 shadow-sm"
-          : "border-slate-100 opacity-60"
+          : "border-slate-100 opacity-55"
       }`}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <MapPin size={14} className="text-blue-500 shrink-0" />
-            <span className="font-semibold text-slate-900 text-sm truncate">
+      {/* Top accent */}
+      <div className={`h-1 rounded-t-xl ${alert.isActive ? "bg-gradient-to-r from-blue-500 to-cyan-400" : "bg-slate-200"}`} />
+
+      <div className="p-4">
+        {/* Route */}
+        <div className="flex items-center justify-between gap-2 mb-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <MapPin size={13} className="text-blue-500 shrink-0" />
+            <span className="font-bold text-slate-900 text-sm truncate">
               {alert.origin}
-              {alert.destinations.length > 0
-                ? ` → ${alert.destinations.join(", ")}`
-                : " → Cualquier destino"}
+            </span>
+            <ArrowRight size={12} className="text-slate-400 shrink-0" />
+            <span className="font-semibold text-slate-700 text-sm truncate">
+              {destination}
             </span>
           </div>
-
-          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-slate-500">
-            <span className="flex items-center gap-1">
-              <Users size={11} />
-              {alert.passengers} viajero{alert.passengers !== 1 ? "s" : ""}
-            </span>
-            <span className="flex items-center gap-1">
-              <Calendar size={11} />
-              {dateFrom} – {dateTo}
-            </span>
-            <span className="flex items-center gap-1">
-              <Clock size={11} />
-              {FREQUENCY_LABELS[alert.frequencyMinutes] ?? `${alert.frequencyMinutes}min`}
-            </span>
-            {alert.maxBudget && (
-              <span className="flex items-center gap-1">
-                <Tag size={11} />
-                Max {Number(alert.maxBudget).toLocaleString()} {alert.currency}
-              </span>
-            )}
-          </div>
-        </div>
-
-        <div className="flex items-center gap-1.5 shrink-0">
           {alert._count.deals > 0 && (
-            <span className="bg-blue-100 text-blue-700 text-xs font-semibold px-2 py-0.5 rounded-full">
-              {alert._count.deals} oferta{alert._count.deals !== 1 ? "s" : ""}
+            <span className="shrink-0 bg-blue-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+              {alert._count.deals}
             </span>
           )}
         </div>
-      </div>
 
-      <div className="mt-4 flex items-center gap-2 pt-3 border-t border-slate-100">
-        <button
-          onClick={handleToggle}
-          disabled={toggling}
-          className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors ${
-            alert.isActive
-              ? "bg-green-50 text-green-700 hover:bg-green-100"
-              : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-          }`}
-        >
-          {alert.isActive ? (
-            <>
-              <Bell size={12} /> Activa
-            </>
-          ) : (
-            <>
-              <BellOff size={12} /> Inactiva
-            </>
+        {/* Details */}
+        <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs text-slate-500">
+          <span className="flex items-center gap-1.5">
+            <Calendar size={11} className="text-slate-400" />
+            {dateFrom}
+          </span>
+          <span className="flex items-center gap-1.5">
+            <Calendar size={11} className="text-slate-400" />
+            {dateTo}
+          </span>
+          <span className="flex items-center gap-1.5">
+            <Users size={11} className="text-slate-400" />
+            {alert.passengers} viajero{alert.passengers !== 1 ? "s" : ""}
+          </span>
+          <span className="flex items-center gap-1.5">
+            <Clock size={11} className="text-slate-400" />
+            {FREQUENCY_LABELS[alert.frequencyMinutes] ?? `${alert.frequencyMinutes}min`}
+          </span>
+          {alert.maxBudget && (
+            <span className="flex items-center gap-1.5 col-span-2">
+              <Tag size={11} className="text-slate-400" />
+              Máx. {Number(alert.maxBudget).toLocaleString()} {alert.currency}
+            </span>
           )}
-        </button>
+        </div>
 
-        <button
-          onClick={handleDelete}
-          disabled={deleting}
-          className="ml-auto flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors disabled:opacity-50"
-        >
-          <Trash2 size={12} />
-          {deleting ? "Eliminando..." : "Eliminar"}
-        </button>
+        {/* Actions */}
+        <div className="mt-3 flex items-center gap-2 pt-3 border-t border-slate-100">
+          <button
+            onClick={handleToggle}
+            disabled={toggling}
+            className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors ${
+              alert.isActive
+                ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+            }`}
+          >
+            {alert.isActive ? <Bell size={11} /> : <BellOff size={11} />}
+            {toggling ? "..." : alert.isActive ? "Activa" : "Inactiva"}
+          </button>
+
+          <button
+            onClick={handleDelete}
+            disabled={deleting}
+            className="ml-auto flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+          >
+            <Trash2 size={11} />
+            {deleting ? "Eliminando..." : "Eliminar"}
+          </button>
+        </div>
       </div>
     </div>
   );

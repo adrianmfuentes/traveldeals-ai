@@ -1,14 +1,14 @@
 import { describe, it, expect, vi } from "vitest";
 import type { FlightOffer } from "../../src/types";
 
-// The mock must be at top level - vi.mock is hoisted
+// Mock must be at top level — vi.mock is hoisted
 const mockCreate = vi.fn();
 
-vi.mock("@anthropic-ai/sdk", () => {
-  const Anthropic = vi.fn().mockImplementation(function () {
-    return { messages: { create: mockCreate } };
+vi.mock("groq-sdk", () => {
+  const Groq = vi.fn().mockImplementation(function () {
+    return { chat: { completions: { create: mockCreate } } };
   });
-  return { default: Anthropic };
+  return { default: Groq };
 });
 
 // Import AFTER the mock is set up
@@ -58,11 +58,14 @@ const validAiResponse = {
   warnings: ["Vuelo directo, sin escalas"],
 };
 
+// Groq returns: { choices: [{ message: { content: "..." } }] }
+function groqResponse(text: string) {
+  return { choices: [{ message: { content: text } }] };
+}
+
 describe("analyzeDealWithAI", () => {
-  it("parses a valid JSON response from Claude", async () => {
-    mockCreate.mockResolvedValue({
-      content: [{ type: "text", text: JSON.stringify(validAiResponse) }],
-    });
+  it("parses a valid JSON response from Groq", async () => {
+    mockCreate.mockResolvedValue(groqResponse(JSON.stringify(validAiResponse)));
 
     const result = await analyzeDealWithAI({ flight: mockFlight, passengers: 2, tripDurationMin: 7 });
 
@@ -76,9 +79,7 @@ describe("analyzeDealWithAI", () => {
 
   it("strips markdown backticks from response before parsing", async () => {
     const withBackticks = "```json\n" + JSON.stringify(validAiResponse) + "\n```";
-    mockCreate.mockResolvedValue({
-      content: [{ type: "text", text: withBackticks }],
-    });
+    mockCreate.mockResolvedValue(groqResponse(withBackticks));
 
     const result = await analyzeDealWithAI({ flight: mockFlight, passengers: 1 });
     expect(result.score).toBe(78);
@@ -86,20 +87,14 @@ describe("analyzeDealWithAI", () => {
   });
 
   it("falls back to score=50 when score is invalid (negative)", async () => {
-    const withBadScore = { ...validAiResponse, score: -10 };
-    mockCreate.mockResolvedValue({
-      content: [{ type: "text", text: JSON.stringify(withBadScore) }],
-    });
+    mockCreate.mockResolvedValue(groqResponse(JSON.stringify({ ...validAiResponse, score: -10 })));
 
     const result = await analyzeDealWithAI({ flight: mockFlight, passengers: 1 });
     expect(result.score).toBe(50);
   });
 
   it("falls back to score=50 when score exceeds 100", async () => {
-    const withBadScore = { ...validAiResponse, score: 150 };
-    mockCreate.mockResolvedValue({
-      content: [{ type: "text", text: JSON.stringify(withBadScore) }],
-    });
+    mockCreate.mockResolvedValue(groqResponse(JSON.stringify({ ...validAiResponse, score: 150 })));
 
     const result = await analyzeDealWithAI({ flight: mockFlight, passengers: 1 });
     expect(result.score).toBe(50);
@@ -110,9 +105,7 @@ describe("analyzeDealWithAI", () => {
       ...validAiResponse,
       budget: { flight: 100, hotel: 200, food: 100, activities: 50, transport: 30, currency: "EUR" },
     };
-    mockCreate.mockResolvedValue({
-      content: [{ type: "text", text: JSON.stringify(withoutTotal) }],
-    });
+    mockCreate.mockResolvedValue(groqResponse(JSON.stringify(withoutTotal)));
 
     await expect(analyzeDealWithAI({ flight: mockFlight, passengers: 1 })).rejects.toThrow(
       "Budget inválido"
@@ -120,18 +113,13 @@ describe("analyzeDealWithAI", () => {
   });
 
   it("throws when budget is missing entirely", async () => {
-    const withoutBudget = { summary: "Test", score: 75, itinerary: [] };
-    mockCreate.mockResolvedValue({
-      content: [{ type: "text", text: JSON.stringify(withoutBudget) }],
-    });
+    mockCreate.mockResolvedValue(groqResponse(JSON.stringify({ summary: "Test", score: 75, itinerary: [] })));
 
     await expect(analyzeDealWithAI({ flight: mockFlight, passengers: 1 })).rejects.toThrow();
   });
 
   it("throws when response is invalid JSON", async () => {
-    mockCreate.mockResolvedValue({
-      content: [{ type: "text", text: "this is not json at all" }],
-    });
+    mockCreate.mockResolvedValue(groqResponse("this is not json at all"));
 
     await expect(analyzeDealWithAI({ flight: mockFlight, passengers: 1 })).rejects.toThrow();
   });

@@ -26,11 +26,19 @@ export default function RegisterPage() {
 
       const data = await res.json();
 
-      if (!res.ok) {
-        setError(data.error ?? "Error al crear la cuenta");
+      if (res.status === 429) {
+        setError("Demasiados intentos. Espera 15 minutos.");
         return;
       }
 
+      if (res.status === 400) {
+        const details = data.details?.fieldErrors;
+        const first = details ? Object.values(details).flat()[0] : null;
+        setError((first as string) ?? data.error ?? "Datos inválidos");
+        return;
+      }
+
+      // Both 200 (email exists, silenced) and 201 (created) go to success page
       router.push("/login?registered=1");
     } catch {
       setError("Error de conexión. Inténtalo de nuevo.");
@@ -88,10 +96,10 @@ export default function RegisterPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            minLength={8}
+            minLength={10}
             autoComplete="new-password"
             className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            placeholder="Mínimo 8 caracteres"
+            placeholder="Mínimo 10 caracteres, mayúscula y número"
           />
         </div>
 

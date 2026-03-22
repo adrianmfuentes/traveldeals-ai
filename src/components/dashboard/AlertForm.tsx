@@ -31,11 +31,11 @@ export default function AlertForm({ onSuccess, onClose }: AlertFormProps) {
     try {
       const destinationsArray = destinations
         .split(",")
-        .map((d) => d.trim().toUpperCase())
-        .filter((d) => d.length === 3);
+        .map((d) => d.trim())
+        .filter((d) => d.length >= 2);
 
       const body: Record<string, unknown> = {
-        origin: origin.toUpperCase(),
+        origin: origin.trim(),
         destinations: destinationsArray,
         passengers,
         dateFrom: new Date(dateFrom).toISOString(),
@@ -86,28 +86,27 @@ export default function AlertForm({ onSuccess, onClose }: AlertFormProps) {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
-                Origen (IATA)
+                Origen
               </label>
               <input
                 type="text"
                 value={origin}
-                onChange={(e) => setOrigin(e.target.value.toUpperCase())}
+                onChange={(e) => setOrigin(e.target.value)}
                 required
-                maxLength={3}
-                placeholder="MAD"
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm uppercase focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Madrid, MAD..."
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
-                Destinos (IATA, separados por coma)
+                Destinos (separados por coma)
               </label>
               <input
                 type="text"
                 value={destinations}
-                onChange={(e) => setDestinations(e.target.value.toUpperCase())}
-                placeholder="LON, PAR (opcional)"
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm uppercase focus:outline-none focus:ring-2 focus:ring-blue-500"
+                onChange={(e) => setDestinations(e.target.value)}
+                placeholder="London, Paris (opcional)"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
           </div>

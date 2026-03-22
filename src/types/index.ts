@@ -12,7 +12,7 @@ export interface FlightOffer {
   duration: string;
   bookingUrl?: string;
   raw: Record<string, unknown>;
-  source: "amadeus" | "kiwi" | "serpapi" | "scraping";
+  source: "serpapi" | "scraping";
 }
 
 export interface HotelOffer {

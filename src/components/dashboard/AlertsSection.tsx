@@ -88,7 +88,7 @@ export default function AlertsSection() {
             Crea tu primera alerta de viaje
           </p>
           <p className="text-xs text-slate-300 mt-1">
-            Configuraremos búsquedas automáticas y te avisaremos cuando encontremos chollos
+            Configuraremos búsquedas automáticas y te avisaremos cuando detectemos una buena oferta
           </p>
         </div>
       )}

@@ -96,7 +96,7 @@ export default function DealsSection({ alertId }: DealsSectionProps) {
         <div className="border-2 border-dashed border-slate-200 rounded-xl p-8 text-center">
           <p className="text-sm font-medium text-slate-400">Aún no hay ofertas</p>
           <p className="text-xs text-slate-300 mt-1">
-            El worker buscará chollos automáticamente según la frecuencia configurada
+            El sistema buscará ofertas automáticamente según la frecuencia configurada
           </p>
         </div>
       )}

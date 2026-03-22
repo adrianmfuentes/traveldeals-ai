@@ -1,11 +1,14 @@
-import Anthropic from "@anthropic-ai/sdk";
+import Groq from "groq-sdk";
 import type { FlightOffer, HotelOffer, AiDealAnalysis } from "../../src/types";
 
-const client = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
+const client = new Groq({
+  apiKey: process.env.GROQ_API_KEY,
 });
 
-// ─── System Prompt para el LLM ──────────────────────
+// Best free model on Groq: fast + capable for structured JSON tasks
+const MODEL = "llama-3.3-70b-versatile";
+
+// ─── System Prompt ──────────────────────────────────
 
 const SYSTEM_PROMPT = `Eres un experto analista de viajes y presupuestos. Tu trabajo es recibir datos crudos de una oferta de vuelo y devolver un análisis completo en formato JSON.
 
@@ -98,20 +101,19 @@ ${hotel ? `- Usa el precio de hotel proporcionado en el campo "hotel" del presup
 
 Genera el análisis completo en JSON.`;
 
-  const response = await client.messages.create({
-    model: "claude-sonnet-4-20250514",
+  const response = await client.chat.completions.create({
+    model: MODEL,
     max_tokens: 2000,
-    messages: [{ role: "user", content: userPrompt }],
-    system: SYSTEM_PROMPT,
+    temperature: 0.3, // Lower = more deterministic JSON
+    messages: [
+      { role: "system", content: SYSTEM_PROMPT },
+      { role: "user", content: userPrompt },
+    ],
   });
 
-  // Extraer el texto de la respuesta
-  const text = response.content
-    .filter((block): block is Anthropic.TextBlock => block.type === "text")
-    .map((block) => block.text)
-    .join("");
+  const text = response.choices[0]?.message?.content ?? "";
 
-  // Parsear JSON (limpiar posibles backticks)
+  // Limpiar posibles backticks o markdown
   const cleaned = text.replace(/```json\n?|```\n?/g, "").trim();
 
   try {

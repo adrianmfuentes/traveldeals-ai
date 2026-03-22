@@ -2,7 +2,8 @@ import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { LogOut, LayoutDashboard, Bell } from "lucide-react";
+import { LogOut, Plane } from "lucide-react";
+import DashboardNav from "@/components/dashboard/DashboardNav";
 
 export default async function DashboardLayout({
   children,
@@ -23,40 +24,29 @@ export default async function DashboardLayout({
           <div className="flex h-14 items-center justify-between">
             <div className="flex items-center gap-6">
               <Link href="/dashboard" className="flex items-center gap-2">
-                <span className="text-base font-bold text-blue-600">TravelDeals AI</span>
+                <Plane size={16} className="text-blue-600" />
+                <span className="text-base font-bold text-slate-900">TravelDeals</span>
+                <span className="text-base font-bold text-blue-600">AI</span>
               </Link>
-
-              <nav className="hidden md:flex items-center gap-1">
-                <Link
-                  href="/dashboard"
-                  className="flex items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-slate-900 px-3 py-1.5 rounded-lg hover:bg-slate-100 transition-colors"
-                >
-                  <LayoutDashboard size={14} />
-                  Dashboard
-                </Link>
-                <Link
-                  href="/dashboard"
-                  className="flex items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-slate-900 px-3 py-1.5 rounded-lg hover:bg-slate-100 transition-colors"
-                >
-                  <Bell size={14} />
-                  Alertas
-                </Link>
-              </nav>
+              <DashboardNav />
             </div>
 
             <div className="flex items-center gap-3">
-              <span className="text-sm text-slate-500 hidden sm:block">
-                {session.user.name ?? session.user.email}
-              </span>
-              <form action="/api/auth/signout" method="POST">
-                <Link
-                  href="/api/auth/signout"
-                  className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800 px-2.5 py-1.5 rounded-lg hover:bg-slate-100 transition-colors"
-                >
-                  <LogOut size={14} />
-                  <span className="hidden sm:inline">Salir</span>
-                </Link>
-              </form>
+              <div className="hidden sm:flex items-center gap-2">
+                <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 text-xs font-bold">
+                  {(session.user.name ?? session.user.email ?? "U")[0].toUpperCase()}
+                </div>
+                <span className="text-sm font-medium text-slate-700">
+                  {session.user.name ?? session.user.email}
+                </span>
+              </div>
+              <Link
+                href="/api/auth/signout"
+                className="flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-800 px-2.5 py-1.5 rounded-lg hover:bg-slate-100 transition-colors border border-transparent hover:border-slate-200"
+              >
+                <LogOut size={13} />
+                <span className="hidden sm:inline">Salir</span>
+              </Link>
             </div>
           </div>
         </div>

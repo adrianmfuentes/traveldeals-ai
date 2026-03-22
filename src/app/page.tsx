@@ -1,12 +1,15 @@
 import Link from "next/link";
-import { Plane, Bell, Sparkles, ArrowRight } from "lucide-react";
+import { Plane, Bell, Sparkles, ArrowRight, TrendingDown, Globe } from "lucide-react";
 
 export default function Home() {
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 text-white">
       {/* Nav */}
       <nav className="flex items-center justify-between px-6 py-4 max-w-6xl mx-auto">
-        <span className="font-bold text-lg text-white">TravelDeals AI</span>
+        <div className="flex items-center gap-2">
+          <Plane size={18} className="text-blue-400" />
+          <span className="font-bold text-lg text-white">TravelDeals AI</span>
+        </div>
         <div className="flex items-center gap-3">
           <Link
             href="/login"
@@ -18,7 +21,7 @@ export default function Home() {
             href="/register"
             className="text-sm font-semibold bg-blue-500 hover:bg-blue-400 text-white px-4 py-2 rounded-lg transition-colors"
           >
-            Registrarse gratis
+            Crear cuenta gratis
           </Link>
         </div>
       </nav>
@@ -27,21 +30,21 @@ export default function Home() {
       <div className="max-w-4xl mx-auto text-center px-6 pt-20 pb-24">
         <div className="inline-flex items-center gap-2 bg-blue-500/20 text-blue-300 text-xs font-semibold px-4 py-1.5 rounded-full border border-blue-500/30 mb-6">
           <Sparkles size={12} />
-          Powered by Anthropic Claude
+          Monitorización de vuelos con inteligencia artificial
         </div>
 
         <h1 className="text-5xl sm:text-6xl font-extrabold leading-tight tracking-tight mb-6">
-          Encuentra chollos de viaje
+          Viaja más por menos,
           <br />
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400">
-            con inteligencia artificial
+            sin esfuerzo
           </span>
         </h1>
 
         <p className="text-lg text-slate-300 max-w-2xl mx-auto mb-10">
-          Configura alertas de búsqueda y nuestro sistema monitorizará vuelos 24/7.
-          Cuando encuentre un chollo, la IA lo analiza y genera un itinerario completo con
-          presupuesto detallado.
+          Configura alertas de búsqueda y nuestro sistema monitoriza vuelos y hoteles 24/7.
+          Cuando detecta una oferta destacada, la IA la analiza y genera un itinerario completo
+          con presupuesto detallado.
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -56,7 +59,7 @@ export default function Home() {
             href="/login"
             className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white font-semibold px-6 py-3 rounded-xl text-sm transition-colors border border-white/20"
           >
-            Ir al dashboard
+            Acceder al panel
           </Link>
         </div>
       </div>
@@ -67,17 +70,17 @@ export default function Home() {
           {
             icon: <Bell size={20} />,
             title: "Alertas automáticas",
-            desc: "Configura origen, destinos y presupuesto. El sistema busca vuelos automáticamente según la frecuencia que elijas.",
+            desc: "Define origen, destinos y presupuesto. El sistema busca vuelos y hoteles de forma automática según la frecuencia que elijas.",
           },
           {
-            icon: <Plane size={20} />,
-            title: "Múltiples proveedores",
-            desc: "Buscamos en Amadeus, Kiwi y Google Flights simultáneamente para encontrar los mejores precios con deduplicación.",
+            icon: <Globe size={20} />,
+            title: "Múltiples fuentes",
+            desc: "Buscamos en Google Flights y Google Hotels simultáneamente para ofrecerte los mejores precios disponibles.",
           },
           {
-            icon: <Sparkles size={20} />,
-            title: "Análisis con IA",
-            desc: "Claude analiza cada oferta, evalúa si es un buen precio, estima el presupuesto total y genera un itinerario personalizado.",
+            icon: <TrendingDown size={20} />,
+            title: "Análisis inteligente",
+            desc: "Cada oferta es evaluada automáticamente, con estimación del presupuesto total e itinerario día a día generado por IA.",
           },
         ].map((f) => (
           <div

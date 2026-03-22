@@ -12,7 +12,7 @@ function makeOffer(overrides: Partial<FlightOffer> = {}): FlightOffer {
     stops: 0,
     duration: "2h",
     raw: {},
-    source: "amadeus",
+    source: "serpapi",
     ...overrides,
   };
 }
@@ -27,14 +27,13 @@ describe("deduplicateOffers", () => {
 
   it("keeps the cheapest offer for the same route+date", () => {
     const offers = [
-      makeOffer({ price: 200, source: "amadeus" }),
-      makeOffer({ price: 120, source: "kiwi" }),
-      makeOffer({ price: 180, source: "serpapi" }),
+      makeOffer({ price: 200 }),
+      makeOffer({ price: 120 }),
+      makeOffer({ price: 180 }),
     ];
     const result = deduplicateOffers(offers);
     expect(result).toHaveLength(1);
     expect(result[0].price).toBe(120);
-    expect(result[0].source).toBe("kiwi");
   });
 
   it("keeps distinct offers for different routes", () => {
@@ -75,37 +74,19 @@ describe("provider availability checks", () => {
   const originalEnv = { ...process.env };
 
   afterEach(() => {
-    process.env.AMADEUS_CLIENT_ID = originalEnv.AMADEUS_CLIENT_ID;
-    process.env.AMADEUS_CLIENT_SECRET = originalEnv.AMADEUS_CLIENT_SECRET;
-    process.env.KIWI_API_KEY = originalEnv.KIWI_API_KEY;
     process.env.SERPAPI_API_KEY = originalEnv.SERPAPI_API_KEY;
-  });
-
-  it("amadeus provider is unavailable when env vars are missing", () => {
-    delete process.env.AMADEUS_CLIENT_ID;
-    delete process.env.AMADEUS_CLIENT_SECRET;
-    // Check availability through the environment check pattern
-    const isAvailable = !!(process.env.AMADEUS_CLIENT_ID && process.env.AMADEUS_CLIENT_SECRET);
-    expect(isAvailable).toBe(false);
-  });
-
-  it("amadeus provider is available when both env vars are set", () => {
-    process.env.AMADEUS_CLIENT_ID = "test-id";
-    process.env.AMADEUS_CLIENT_SECRET = "test-secret";
-    const isAvailable = !!(process.env.AMADEUS_CLIENT_ID && process.env.AMADEUS_CLIENT_SECRET);
-    expect(isAvailable).toBe(true);
-  });
-
-  it("kiwi provider is unavailable when KIWI_API_KEY is missing", () => {
-    delete process.env.KIWI_API_KEY;
-    const isAvailable = !!process.env.KIWI_API_KEY;
-    expect(isAvailable).toBe(false);
   });
 
   it("serpapi provider is unavailable when SERPAPI_API_KEY is missing", () => {
     delete process.env.SERPAPI_API_KEY;
     const isAvailable = !!process.env.SERPAPI_API_KEY;
     expect(isAvailable).toBe(false);
+  });
+
+  it("serpapi provider is available when SERPAPI_API_KEY is set", () => {
+    process.env.SERPAPI_API_KEY = "test-key";
+    const isAvailable = !!process.env.SERPAPI_API_KEY;
+    expect(isAvailable).toBe(true);
   });
 });
 

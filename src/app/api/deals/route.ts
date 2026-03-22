@@ -25,14 +25,19 @@ export async function GET(req: NextRequest) {
     }
 
     const { searchParams } = new URL(req.url);
-    const status = searchParams.get("status") ?? "READY";
-    const limit = Math.min(parseInt(searchParams.get("limit") ?? "20"), 50);
+    const VALID_STATUSES = ["READY", "PROCESSING", "ERROR"] as const;
+    type DealStatus = typeof VALID_STATUSES[number];
+    const rawStatus = searchParams.get("status") ?? "READY";
+    const status: DealStatus = VALID_STATUSES.includes(rawStatus as DealStatus)
+      ? (rawStatus as DealStatus)
+      : "READY";
+    const limit = Math.min(Math.max(1, parseInt(searchParams.get("limit") ?? "20") || 20), 50);
     const alertId = searchParams.get("alertId");
 
     const deals = await prisma.deal.findMany({
       where: {
         userId: session.user.id,
-        status: status as any,
+        status,
         ...(alertId ? { alertId } : {}),
       },
       orderBy: { createdAt: "desc" },
