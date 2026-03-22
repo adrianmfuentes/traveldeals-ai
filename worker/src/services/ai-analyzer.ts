@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import type { FlightOffer, AiDealAnalysis } from "../../src/types";
+import type { FlightOffer, HotelOffer, AiDealAnalysis } from "../../src/types";
 
 const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -60,12 +60,23 @@ interface AnalyzeParams {
   passengers: number;
   tripDurationMin?: number | null;
   tripDurationMax?: number | null;
+  hotel?: HotelOffer;
 }
 
 export async function analyzeDealWithAI(params: AnalyzeParams): Promise<AiDealAnalysis> {
-  const { flight, passengers, tripDurationMin, tripDurationMax } = params;
+  const { flight, passengers, tripDurationMin, tripDurationMax, hotel } = params;
 
-  const tripDays = tripDurationMin ?? 3; // Por defecto 3 días
+  const tripDays = tripDurationMin ?? 3;
+
+  const hotelSection = hotel
+    ? `
+DATOS DEL ALOJAMIENTO:
+- Hotel: ${hotel.name}
+- Precio total alojamiento: ${hotel.price} ${hotel.currency}
+- Valoración: ${hotel.rating ? `${hotel.rating}/5` : "No disponible"}
+- Fuente: ${hotel.source}
+`
+    : "";
 
   const userPrompt = `Analiza esta oferta de vuelo y genera un plan de viaje completo:
 
@@ -78,11 +89,12 @@ DATOS DEL VUELO:
 - Escalas: ${flight.stops}
 - Duración: ${flight.duration}
 - Fuente: ${flight.source}
-
+${hotelSection}
 CONTEXTO:
 - Número de viajeros: ${passengers}
 - Duración del viaje: ${tripDays} días
 - Presupuesto del vuelo es POR PERSONA. Calcula el presupuesto total para ${passengers} persona(s).
+${hotel ? `- Usa el precio de hotel proporcionado en el campo "hotel" del presupuesto en lugar de estimarlo.` : ""}
 
 Genera el análisis completo en JSON.`;
 

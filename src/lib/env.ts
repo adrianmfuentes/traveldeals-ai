@@ -8,7 +8,10 @@ const envSchema = z.object({
   AMADEUS_CLIENT_SECRET: z.string().optional(),
   KIWI_API_KEY: z.string().optional(),
   SERPAPI_API_KEY: z.string().optional(),
+  RESEND_API_KEY: z.string().optional(),
   NEXT_PUBLIC_APP_URL: z.string().url().default("http://localhost:3000"),
+  NEXTAUTH_SECRET: z.string().min(1),
+  NEXTAUTH_URL: z.string().url().default("http://localhost:3000"),
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
 });
 

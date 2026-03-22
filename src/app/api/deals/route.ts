@@ -1,11 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { rateLimit, getIdentifier } from "@/lib/rate-limit";
 
 // GET /api/deals — Listar ofertas del usuario
 export async function GET(req: NextRequest) {
   try {
-    // TODO: Obtener userId de la sesión
-    const userId = "temp-user-id";
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+    }
+
+    const { success, remaining } = await rateLimit(
+      getIdentifier(req, session.user.id),
+      10,
+      60
+    );
+    if (!success) {
+      return NextResponse.json(
+        { error: "Demasiadas peticiones. Inténtalo en un momento." },
+        { status: 429, headers: { "X-RateLimit-Remaining": String(remaining) } }
+      );
+    }
 
     const { searchParams } = new URL(req.url);
     const status = searchParams.get("status") ?? "READY";
@@ -14,7 +31,7 @@ export async function GET(req: NextRequest) {
 
     const deals = await prisma.deal.findMany({
       where: {
-        userId,
+        userId: session.user.id,
         status: status as any,
         ...(alertId ? { alertId } : {}),
       },
