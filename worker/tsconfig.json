@@ -10,7 +10,13 @@
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "paths": {
-      "@/*": ["../src/*"]
+      "@/*": ["../src/*"],
+      "@platform/core/auth": ["../../platform-core/src/auth/index.ts"],
+      "@platform/core/db": ["../../platform-core/src/db/index.ts"],
+      "@platform/core/worker": ["../../platform-core/src/worker/index.ts"],
+      "@platform/core/ui/*": ["../../platform-core/src/ui/*.tsx"],
+      "@platform/core/lib/*": ["../../platform-core/src/lib/*.ts"],
+      "@platform/core/i18n/*": ["../../platform-core/src/i18n/*.ts"]
     }
   },
   "include": ["src/**/*.ts", "../src/types/**/*.ts"]

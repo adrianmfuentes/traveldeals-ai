@@ -1,9 +1,20 @@
+const path = require('path');
 const createNextIntlPlugin = require('next-intl/plugin');
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "standalone",
+  // Allow importing files from outside this app's root (platform-core)
+  experimental: {
+    externalDir: true,
+  },
+  webpack: (config) => {
+    // When platform-core files import 'next-auth', 'next-intl', etc.,
+    // resolve them from this app's node_modules (platform-core has none).
+    config.resolve.modules.push(path.resolve(__dirname, 'node_modules'));
+    return config;
+  },
   headers: async () => [
     {
       source: "/(.*)",
