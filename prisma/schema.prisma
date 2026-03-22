@@ -1,0 +1,116 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── USUARIOS ────────────────────────────────────────
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String?
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  alerts SearchAlert[]
+  deals  Deal[]
+
+  @@map("users")
+}
+
+// ─── ALERTAS DE BÚSQUEDA ─────────────────────────────
+
+model SearchAlert {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Configuración de búsqueda
+  origin          String   // Código IATA: "MAD", "BCN"
+  destinations    String[] // Códigos IATA. Array vacío = "cualquier destino"
+  passengers      Int      @default(1)
+  dateFrom        DateTime
+  dateTo          DateTime
+  tripDurationMin Int?
+  tripDurationMax Int?
+  maxBudget       Decimal? @db.Decimal(10, 2)
+  currency        String   @default("EUR")
+
+  // Configuración de la alerta
+  frequencyMinutes Int      @default(720) // 720 = cada 12 horas
+  isActive         Boolean  @default(true)
+  lastRunAt        DateTime?
+  nextRunAt        DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  deals Deal[]
+
+  @@index([isActive, nextRunAt])
+  @@index([userId])
+  @@map("search_alerts")
+}
+
+// ─── OFERTAS ENCONTRADAS ─────────────────────────────
+
+model Deal {
+  id      String      @id @default(cuid())
+  alertId String
+  alert   SearchAlert @relation(fields: [alertId], references: [id], onDelete: Cascade)
+  userId  String
+  user    User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Datos del vuelo
+  origin        String
+  destination   String
+  departureDate DateTime
+  returnDate    DateTime?
+  airline       String?
+  flightPrice   Decimal  @db.Decimal(10, 2)
+  flightData    Json
+  flightSource  String // "amadeus" | "kiwi" | "serpapi" | "scraping"
+  bookingUrl    String?
+
+  // Datos del alojamiento
+  hotelName       String?
+  hotelPrice      Decimal? @db.Decimal(10, 2)
+  hotelData       Json?
+  hotelSource     String?
+  hotelBookingUrl String?
+
+  // Resultado del procesamiento IA
+  aiProcessed   Boolean @default(false)
+  aiSummary     String?
+  aiBudget      Json?
+  aiItinerary   Json?
+  aiScore       Float?
+  aiRawResponse Json?
+
+  // Metadatos
+  currency      String     @default("EUR")
+  totalEstimate Decimal?   @db.Decimal(10, 2)
+  isNotified    Boolean    @default(false)
+  status        DealStatus @default(PENDING)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([alertId, createdAt(sort: Desc)])
+  @@index([status])
+  @@map("deals")
+}
+
+enum DealStatus {
+  PENDING
+  PROCESSING
+  READY
+  EXPIRED
+  ERROR
+}
