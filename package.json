@@ -15,7 +15,14 @@
     "worker:start": "tsx worker/src/index.ts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "test:report": "bash scripts/run-tests.sh --coverage",
+    "security:check": "bash scripts/security-check.sh",
+    "security:fix": "bash scripts/security-check.sh --fix",
+    "docker:build": "docker compose build",
+    "docker:up": "docker compose --env-file .env up -d",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f"
   },
   "dependencies": {
     "@prisma/client": "^5.20.0",

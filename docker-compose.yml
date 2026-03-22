@@ -1,0 +1,122 @@
+version: "3.9"
+
+# =============================================================================
+# TravelDeals AI — Full stack docker-compose
+# Usage: docker compose --env-file .env up -d
+# =============================================================================
+
+services:
+
+  # ── PostgreSQL ──────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: traveldeals
+      POSTGRES_USER: ${POSTGRES_USER:-traveldeals}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-traveldeals}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - internal
+
+  # ── Redis ───────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD is required} --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - internal
+
+  # ── DB migrations (runs once on startup) ────────────────────────────────────
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: npx prisma migrate deploy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-traveldeals}:${POSTGRES_PASSWORD}@postgres:5432/traveldeals
+      DIRECT_URL:   postgresql://${POSTGRES_USER:-traveldeals}:${POSTGRES_PASSWORD}@postgres:5432/traveldeals
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - internal
+    restart: on-failure
+
+  # ── Next.js app ─────────────────────────────────────────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-traveldeals}:${POSTGRES_PASSWORD}@postgres:5432/traveldeals
+      DIRECT_URL:   postgresql://${POSTGRES_USER:-traveldeals}:${POSTGRES_PASSWORD}@postgres:5432/traveldeals
+      REDIS_URL:    redis://:${REDIS_PASSWORD}@redis:6379
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:?NEXTAUTH_SECRET is required}
+      NEXTAUTH_URL:    ${NEXTAUTH_URL:?NEXTAUTH_URL is required}
+      GROQ_API_KEY:    ${GROQ_API_KEY:?GROQ_API_KEY is required}
+      SERPAPI_API_KEY: ${SERPAPI_API_KEY:?SERPAPI_API_KEY is required}
+      RESEND_API_KEY:  ${RESEND_API_KEY:-}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    networks:
+      - internal
+      - public
+
+  # ── Background worker ────────────────────────────────────────────────────────
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-traveldeals}:${POSTGRES_PASSWORD}@postgres:5432/traveldeals
+      DIRECT_URL:   postgresql://${POSTGRES_USER:-traveldeals}:${POSTGRES_PASSWORD}@postgres:5432/traveldeals
+      REDIS_URL:    redis://:${REDIS_PASSWORD}@redis:6379
+      GROQ_API_KEY:    ${GROQ_API_KEY}
+      SERPAPI_API_KEY: ${SERPAPI_API_KEY}
+      RESEND_API_KEY:  ${RESEND_API_KEY:-}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    networks:
+      - internal
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  internal:
+    driver: bridge
+  public:
+    driver: bridge
