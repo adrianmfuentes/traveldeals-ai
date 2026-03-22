@@ -1,6 +1,7 @@
 "use client";
 
 import { Plane, Calendar, ExternalLink, Hotel, ArrowRight } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 interface Deal {
   id: string;
@@ -25,6 +26,8 @@ interface DealCardProps {
 }
 
 function ScoreBar({ score }: { score: number }) {
+  const t = useTranslations("deals.score");
+
   const color =
     score >= 80
       ? "bg-emerald-500"
@@ -32,24 +35,27 @@ function ScoreBar({ score }: { score: number }) {
       ? "bg-amber-400"
       : "bg-red-400";
   const label =
-    score >= 80 ? "Excelente" : score >= 60 ? "Buena oferta" : "Regular";
+    score >= 80 ? t("excellent") : score >= 60 ? t("good") : t("average");
   const textColor =
     score >= 80
-      ? "text-emerald-700"
+      ? "text-emerald-700 dark:text-emerald-400"
       : score >= 60
-      ? "text-amber-700"
-      : "text-red-700";
+      ? "text-amber-700 dark:text-amber-400"
+      : "text-red-700 dark:text-red-400";
   const bgColor =
     score >= 80
-      ? "bg-emerald-50"
+      ? "bg-emerald-50 dark:bg-emerald-950"
       : score >= 60
-      ? "bg-amber-50"
-      : "bg-red-50";
+      ? "bg-amber-50 dark:bg-amber-950"
+      : "bg-red-50 dark:bg-red-950";
 
   return (
     <div className={`flex items-center gap-2 px-2.5 py-1 rounded-full ${bgColor}`}>
-      <div className="w-16 h-1.5 bg-slate-200 rounded-full overflow-hidden">
-        <div className={`h-full ${color} rounded-full`} style={{ width: `${score}%` }} />
+      <div className="w-16 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+        <div
+          className={`h-full ${color} rounded-full`}
+          style={{ width: `${score}%` }}
+        />
       </div>
       <span className={`text-xs font-semibold ${textColor}`}>{label}</span>
     </div>
@@ -57,8 +63,10 @@ function ScoreBar({ score }: { score: number }) {
 }
 
 export default function DealCard({ deal, onClick }: DealCardProps) {
+  const t = useTranslations("deals.card");
+
   const fmt = (d: string) =>
-    new Date(d).toLocaleDateString("es-ES", {
+    new Date(d).toLocaleDateString(undefined, {
       day: "numeric",
       month: "short",
       year: "numeric",
@@ -74,7 +82,7 @@ export default function DealCard({ deal, onClick }: DealCardProps) {
   return (
     <div
       onClick={onClick}
-      className="bg-white rounded-xl border border-slate-200 overflow-hidden cursor-pointer hover:shadow-lg hover:border-slate-300 transition-all group"
+      className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden cursor-pointer hover:shadow-lg hover:border-slate-300 dark:hover:border-slate-600 transition-all group"
     >
       {/* Top gradient accent */}
       <div className={`h-1 bg-gradient-to-r ${accentColor}`} />
@@ -82,16 +90,16 @@ export default function DealCard({ deal, onClick }: DealCardProps) {
       <div className="p-5">
         {/* Route */}
         <div className="flex items-center justify-between gap-2 mb-3">
-          <div className="flex items-center gap-1.5 font-bold text-slate-900">
+          <div className="flex items-center gap-1.5 font-bold text-slate-900 dark:text-slate-100">
             <span>{deal.origin}</span>
-            <ArrowRight size={14} className="text-slate-400" />
+            <ArrowRight size={14} className="text-slate-400 dark:text-slate-500" />
             <span>{deal.destination}</span>
           </div>
           {deal.aiScore != null && <ScoreBar score={deal.aiScore} />}
         </div>
 
         {/* Airline & date */}
-        <div className="flex items-center gap-3 text-xs text-slate-500 mb-3">
+        <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 mb-3">
           {deal.airline && (
             <span className="flex items-center gap-1.5">
               <Plane size={11} />
@@ -101,17 +109,21 @@ export default function DealCard({ deal, onClick }: DealCardProps) {
           <span className="flex items-center gap-1.5">
             <Calendar size={11} />
             {fmt(deal.departureDate)}
-            {deal.returnDate && ` – ${new Date(deal.returnDate).toLocaleDateString("es-ES", { day: "numeric", month: "short" })}`}
+            {deal.returnDate &&
+              ` – ${new Date(deal.returnDate).toLocaleDateString(undefined, {
+                day: "numeric",
+                month: "short",
+              })}`}
           </span>
         </div>
 
         {/* Hotel */}
         {deal.hotelName && (
-          <div className="flex items-center gap-1.5 text-xs text-slate-500 mb-3 bg-slate-50 rounded-lg px-2.5 py-1.5">
-            <Hotel size={11} className="text-slate-400" />
+          <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 mb-3 bg-slate-50 dark:bg-slate-800 rounded-lg px-2.5 py-1.5">
+            <Hotel size={11} className="text-slate-400 dark:text-slate-500" />
             <span className="truncate">{deal.hotelName}</span>
             {deal.hotelPrice != null && (
-              <span className="ml-auto shrink-0 font-medium text-slate-700">
+              <span className="ml-auto shrink-0 font-medium text-slate-700 dark:text-slate-300">
                 {Number(deal.hotelPrice).toLocaleString()} {deal.currency}
               </span>
             )}
@@ -120,29 +132,34 @@ export default function DealCard({ deal, onClick }: DealCardProps) {
 
         {/* Summary */}
         {deal.aiSummary && (
-          <p className="text-xs text-slate-500 line-clamp-2 mb-4 leading-relaxed">
+          <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mb-4 leading-relaxed">
             {deal.aiSummary}
           </p>
         )}
 
         {/* Price & CTA */}
-        <div className="flex items-end justify-between gap-2 pt-3 border-t border-slate-100">
+        <div className="flex items-end justify-between gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
           <div>
-            <div className="text-xs text-slate-400 mb-0.5">Vuelo desde</div>
-            <div className="text-xl font-extrabold text-slate-900">
+            <div className="text-xs text-slate-400 dark:text-slate-500 mb-0.5">
+              {t("flightFrom")}
+            </div>
+            <div className="text-xl font-extrabold text-slate-900 dark:text-slate-100">
               {Number(deal.flightPrice).toLocaleString()}
-              <span className="text-sm font-semibold text-slate-500 ml-1">{deal.currency}</span>
+              <span className="text-sm font-semibold text-slate-500 dark:text-slate-400 ml-1">
+                {deal.currency}
+              </span>
             </div>
             {deal.totalEstimate && (
-              <div className="text-xs text-slate-400 mt-0.5">
-                Total estimado {Number(deal.totalEstimate).toLocaleString()} {deal.currency}
+              <div className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
+                {t("totalEstimate")} {Number(deal.totalEstimate).toLocaleString()}{" "}
+                {deal.currency}
               </div>
             )}
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-xs text-blue-600 font-medium group-hover:underline">
-              Ver detalles
+            <span className="text-xs text-blue-600 dark:text-blue-400 font-medium group-hover:underline">
+              {t("viewDetails")}
             </span>
             {deal.bookingUrl && (
               <a
@@ -153,7 +170,7 @@ export default function DealCard({ deal, onClick }: DealCardProps) {
                 className="flex items-center gap-1 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 px-3 py-2 rounded-lg transition-colors"
               >
                 <ExternalLink size={11} />
-                Reservar
+                {t("book")}
               </a>
             )}
           </div>

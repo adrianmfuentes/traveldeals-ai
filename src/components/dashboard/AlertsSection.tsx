@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Plus } from "lucide-react";
 import AlertCard from "./AlertCard";
 import AlertForm from "./AlertForm";
+import { useTranslations } from "next-intl";
 
 interface SearchAlert {
   id: string;
@@ -20,6 +21,7 @@ interface SearchAlert {
 }
 
 export default function AlertsSection() {
+  const t = useTranslations("alerts");
   const [alerts, setAlerts] = useState<SearchAlert[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -34,7 +36,7 @@ export default function AlertsSection() {
       const data = await res.json();
       setAlerts(data.alerts ?? []);
     } catch {
-      setError("No se pudieron cargar las alertas.");
+      setError(t("loadError"));
     } finally {
       setLoading(false);
     }
@@ -47,10 +49,10 @@ export default function AlertsSection() {
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold text-slate-900">
-          Mis alertas
+        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+          {t("title")}
           {!loading && (
-            <span className="ml-2 text-sm font-normal text-slate-400">
+            <span className="ml-2 text-sm font-normal text-slate-400 dark:text-slate-500">
               ({alerts.length})
             </span>
           )}
@@ -60,20 +62,23 @@ export default function AlertsSection() {
           className="flex items-center gap-1.5 bg-blue-600 text-white text-sm font-semibold px-3 py-2 rounded-lg hover:bg-blue-700 transition-colors"
         >
           <Plus size={15} />
-          Nueva alerta
+          {t("new")}
         </button>
       </div>
 
       {loading && (
         <div className="space-y-3">
           {[1, 2].map((i) => (
-            <div key={i} className="h-32 bg-slate-100 rounded-xl animate-pulse" />
+            <div
+              key={i}
+              className="h-32 bg-slate-100 dark:bg-slate-800 rounded-xl animate-pulse"
+            />
           ))}
         </div>
       )}
 
       {!loading && error && (
-        <div className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl p-4">
+        <div className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950 border border-red-100 dark:border-red-900 rounded-xl p-4">
           {error}
         </div>
       )}
@@ -81,14 +86,17 @@ export default function AlertsSection() {
       {!loading && !error && alerts.length === 0 && (
         <div
           onClick={() => setShowForm(true)}
-          className="border-2 border-dashed border-slate-200 rounded-xl p-8 text-center cursor-pointer hover:border-blue-300 hover:bg-blue-50 transition-colors group"
+          className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl p-8 text-center cursor-pointer hover:border-blue-300 dark:hover:border-blue-700 hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-colors group"
         >
-          <Plus size={24} className="mx-auto text-slate-300 group-hover:text-blue-400 mb-2" />
-          <p className="text-sm font-medium text-slate-400 group-hover:text-blue-600">
-            Crea tu primera alerta de viaje
+          <Plus
+            size={24}
+            className="mx-auto text-slate-300 dark:text-slate-600 group-hover:text-blue-400 mb-2"
+          />
+          <p className="text-sm font-medium text-slate-400 dark:text-slate-500 group-hover:text-blue-600 dark:group-hover:text-blue-400">
+            {t("empty.title")}
           </p>
-          <p className="text-xs text-slate-300 mt-1">
-            Configuraremos búsquedas automáticas y te avisaremos cuando detectemos una buena oferta
+          <p className="text-xs text-slate-300 dark:text-slate-600 mt-1">
+            {t("empty.subtitle")}
           </p>
         </div>
       )}

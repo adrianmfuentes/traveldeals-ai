@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { MapPin, Users, Calendar, Clock, Trash2, Bell, BellOff, Tag, ArrowRight } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 interface SearchAlertWithCount {
   id: string;
@@ -22,16 +23,17 @@ interface AlertCardProps {
   onUpdate: () => void;
 }
 
-const FREQUENCY_LABELS: Record<number, string> = {
-  60: "Cada hora",
-  360: "Cada 6h",
-  720: "Cada 12h",
-  1440: "Cada día",
-};
-
 export default function AlertCard({ alert, onUpdate }: AlertCardProps) {
+  const t = useTranslations("alerts");
   const [toggling, setToggling] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
+  const FREQUENCY_LABELS: Record<number, string> = {
+    60: t("form.freq60"),
+    360: t("form.freq360"),
+    720: t("form.freq720"),
+    1440: t("form.freq1440"),
+  };
 
   async function handleToggle() {
     setToggling(true);
@@ -48,7 +50,7 @@ export default function AlertCard({ alert, onUpdate }: AlertCardProps) {
   }
 
   async function handleDelete() {
-    if (!confirm("¿Eliminar esta alerta? Se borrarán también todas sus ofertas.")) return;
+    if (!confirm(t("deleteConfirm"))) return;
     setDeleting(true);
     try {
       const res = await fetch(`/api/alerts/${alert.id}`, { method: "DELETE" });
@@ -58,41 +60,49 @@ export default function AlertCard({ alert, onUpdate }: AlertCardProps) {
     }
   }
 
-  const dateFrom = new Date(alert.dateFrom).toLocaleDateString("es-ES", {
+  const dateFrom = new Date(alert.dateFrom).toLocaleDateString(undefined, {
     day: "numeric",
     month: "short",
     year: "numeric",
   });
-  const dateTo = new Date(alert.dateTo).toLocaleDateString("es-ES", {
+  const dateTo = new Date(alert.dateTo).toLocaleDateString(undefined, {
     day: "numeric",
     month: "short",
     year: "numeric",
   });
 
   const destination =
-    alert.destinations.length > 0 ? alert.destinations.join(", ") : "Cualquier destino";
+    alert.destinations.length > 0
+      ? alert.destinations.join(", ")
+      : "—";
 
   return (
     <div
-      className={`bg-white rounded-xl border transition-all ${
+      className={`bg-white dark:bg-slate-900 rounded-xl border transition-all ${
         alert.isActive
-          ? "border-slate-200 shadow-sm"
-          : "border-slate-100 opacity-55"
+          ? "border-slate-200 dark:border-slate-700 shadow-sm"
+          : "border-slate-100 dark:border-slate-800 opacity-55"
       }`}
     >
       {/* Top accent */}
-      <div className={`h-1 rounded-t-xl ${alert.isActive ? "bg-gradient-to-r from-blue-500 to-cyan-400" : "bg-slate-200"}`} />
+      <div
+        className={`h-1 rounded-t-xl ${
+          alert.isActive
+            ? "bg-gradient-to-r from-blue-500 to-cyan-400"
+            : "bg-slate-200 dark:bg-slate-700"
+        }`}
+      />
 
       <div className="p-4">
         {/* Route */}
         <div className="flex items-center justify-between gap-2 mb-3">
           <div className="flex items-center gap-2 min-w-0">
             <MapPin size={13} className="text-blue-500 shrink-0" />
-            <span className="font-bold text-slate-900 text-sm truncate">
+            <span className="font-bold text-slate-900 dark:text-slate-100 text-sm truncate">
               {alert.origin}
             </span>
-            <ArrowRight size={12} className="text-slate-400 shrink-0" />
-            <span className="font-semibold text-slate-700 text-sm truncate">
+            <ArrowRight size={12} className="text-slate-400 dark:text-slate-500 shrink-0" />
+            <span className="font-semibold text-slate-700 dark:text-slate-300 text-sm truncate">
               {destination}
             </span>
           </div>
@@ -104,53 +114,55 @@ export default function AlertCard({ alert, onUpdate }: AlertCardProps) {
         </div>
 
         {/* Details */}
-        <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs text-slate-500">
+        <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs text-slate-500 dark:text-slate-400">
           <span className="flex items-center gap-1.5">
-            <Calendar size={11} className="text-slate-400" />
+            <Calendar size={11} className="text-slate-400 dark:text-slate-500" />
             {dateFrom}
           </span>
           <span className="flex items-center gap-1.5">
-            <Calendar size={11} className="text-slate-400" />
+            <Calendar size={11} className="text-slate-400 dark:text-slate-500" />
             {dateTo}
           </span>
           <span className="flex items-center gap-1.5">
-            <Users size={11} className="text-slate-400" />
-            {alert.passengers} viajero{alert.passengers !== 1 ? "s" : ""}
+            <Users size={11} className="text-slate-400 dark:text-slate-500" />
+            {alert.passengers === 1
+              ? t("travelers", { count: alert.passengers })
+              : t("travelersPlural", { count: alert.passengers })}
           </span>
           <span className="flex items-center gap-1.5">
-            <Clock size={11} className="text-slate-400" />
+            <Clock size={11} className="text-slate-400 dark:text-slate-500" />
             {FREQUENCY_LABELS[alert.frequencyMinutes] ?? `${alert.frequencyMinutes}min`}
           </span>
           {alert.maxBudget && (
             <span className="flex items-center gap-1.5 col-span-2">
-              <Tag size={11} className="text-slate-400" />
-              Máx. {Number(alert.maxBudget).toLocaleString()} {alert.currency}
+              <Tag size={11} className="text-slate-400 dark:text-slate-500" />
+              {t("maxBudget")} {Number(alert.maxBudget).toLocaleString()} {alert.currency}
             </span>
           )}
         </div>
 
         {/* Actions */}
-        <div className="mt-3 flex items-center gap-2 pt-3 border-t border-slate-100">
+        <div className="mt-3 flex items-center gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
           <button
             onClick={handleToggle}
             disabled={toggling}
             className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors ${
               alert.isActive
-                ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
-                : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                ? "bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900"
+                : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
             }`}
           >
             {alert.isActive ? <Bell size={11} /> : <BellOff size={11} />}
-            {toggling ? "..." : alert.isActive ? "Activa" : "Inactiva"}
+            {toggling ? "..." : alert.isActive ? t("active") : t("inactive")}
           </button>
 
           <button
             onClick={handleDelete}
             disabled={deleting}
-            className="ml-auto flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+            className="ml-auto flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg text-slate-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 transition-colors disabled:opacity-50"
           >
             <Trash2 size={11} />
-            {deleting ? "Eliminando..." : "Eliminar"}
+            {deleting ? t("deleting") : t("delete")}
           </button>
         </div>
       </div>

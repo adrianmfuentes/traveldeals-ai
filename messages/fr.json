@@ -1,0 +1,160 @@
+{
+  "nav": {
+    "login": "Se connecter",
+    "register": "Créer un compte gratuit",
+    "signOut": "Se déconnecter",
+    "back": "Retour",
+    "panel": "Tableau de bord"
+  },
+  "landing": {
+    "badge": "Surveillance de vols par intelligence artificielle",
+    "headline1": "Voyagez plus pour moins,",
+    "headline2": "sans effort",
+    "description": "Configurez des alertes de recherche et notre système surveille les vols et les hôtels 24h/24 7j/7. Quand il détecte une offre exceptionnelle, l'IA l'analyse et génère un itinéraire complet avec un budget détaillé.",
+    "ctaStart": "Commencer gratuitement",
+    "ctaAccess": "Accéder au panneau",
+    "features": {
+      "alerts": {
+        "title": "Alertes automatiques",
+        "desc": "Définissez l'origine, les destinations et le budget. Le système recherche des vols et des hôtels automatiquement selon la fréquence choisie."
+      },
+      "sources": {
+        "title": "Sources multiples",
+        "desc": "Nous recherchons sur Google Flights et Google Hotels simultanément pour vous offrir les meilleurs prix disponibles."
+      },
+      "ai": {
+        "title": "Analyse intelligente",
+        "desc": "Chaque offre est évaluée automatiquement, avec une estimation du budget total et un itinéraire jour par jour généré par IA."
+      }
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "TravelDeals AI",
+      "subtitle": "Connectez-vous à votre compte",
+      "email": "Email",
+      "password": "Mot de passe",
+      "submit": "Se connecter",
+      "submitting": "Connexion en cours...",
+      "noAccount": "Vous n'avez pas de compte ?",
+      "signUp": "Inscrivez-vous gratuitement",
+      "invalidCredentials": "Email ou mot de passe incorrect"
+    },
+    "register": {
+      "title": "TravelDeals AI",
+      "subtitle": "Créez votre compte gratuit",
+      "name": "Nom",
+      "nameOptional": "(optionnel)",
+      "email": "Email",
+      "password": "Mot de passe",
+      "passwordHint": "Minimum 10 caractères, majuscule et chiffre",
+      "submit": "Créer un compte",
+      "submitting": "Création en cours...",
+      "hasAccount": "Vous avez déjà un compte ?",
+      "signIn": "Se connecter",
+      "tooManyAttempts": "Trop de tentatives. Attendez 15 minutes.",
+      "invalidData": "Données invalides",
+      "connectionError": "Erreur de connexion. Veuillez réessayer."
+    }
+  },
+  "dashboard": {
+    "welcome": "Bienvenue{name}",
+    "subtitle": "Gérez vos alertes de voyage et consultez les meilleures offres détectées.",
+    "stats": {
+      "activeAlerts": "Alertes actives",
+      "dealsFound": "Offres trouvées",
+      "bestScore": "Meilleur score",
+      "lowestPrice": "Prix le plus bas"
+    }
+  },
+  "alerts": {
+    "title": "Mes alertes",
+    "count": "({count})",
+    "new": "Nouvelle alerte",
+    "active": "Active",
+    "inactive": "Inactive",
+    "deleting": "Suppression...",
+    "delete": "Supprimer",
+    "deleteConfirm": "Supprimer cette alerte ? Toutes ses offres seront également supprimées.",
+    "empty": {
+      "title": "Créez votre première alerte de voyage",
+      "subtitle": "Nous configurerons des recherches automatiques et vous avertirons lorsque nous détecterons une bonne offre",
+      "cta": "Créer une alerte"
+    },
+    "loadError": "Impossible de charger les alertes.",
+    "travelers": "{count} voyageur",
+    "travelersPlural": "{count} voyageurs",
+    "maxBudget": "Max.",
+    "form": {
+      "title": "Nouvelle alerte de voyage",
+      "origin": "Origine",
+      "originPlaceholder": "Madrid, MAD...",
+      "destinations": "Destinations (séparées par des virgules)",
+      "destinationsPlaceholder": "Londres, Paris (optionnel)",
+      "passengers": "Nombre de voyageurs",
+      "dateFrom": "Date de départ",
+      "dateTo": "Date de retour",
+      "durationMin": "Durée min. (jours)",
+      "durationMax": "Durée max. (jours)",
+      "budget": "Budget maximum",
+      "currency": "Devise",
+      "frequency": "Fréquence de recherche",
+      "cancel": "Annuler",
+      "create": "Créer l'alerte",
+      "creating": "Création...",
+      "freq60": "Chaque heure",
+      "freq360": "Toutes les 6 heures",
+      "freq720": "Toutes les 12 heures",
+      "freq1440": "Toutes les 24 heures",
+      "success": "Alerte créée avec succès",
+      "error": "Erreur lors de la création de l'alerte"
+    }
+  },
+  "deals": {
+    "title": "Offres trouvées",
+    "refresh": "Actualiser",
+    "empty": {
+      "title": "Pas encore d'offres",
+      "subtitle": "Le système recherchera des offres automatiquement selon la fréquence configurée"
+    },
+    "loadError": "Impossible de charger les offres.",
+    "score": {
+      "excellent": "Excellent",
+      "good": "Bonne offre",
+      "average": "Moyenne"
+    },
+    "card": {
+      "flightFrom": "Vol depuis",
+      "totalEstimate": "Total estimé",
+      "book": "Réserver",
+      "viewDetails": "Voir les détails",
+      "hotel": "Hôtel"
+    },
+    "detail": {
+      "score": "Score de l'offre",
+      "summary": "Résumé",
+      "budget": {
+        "title": "Détail du budget",
+        "flight": "Vol",
+        "hotel": "Hébergement",
+        "food": "Nourriture",
+        "activities": "Activités",
+        "transport": "Transport local",
+        "total": "Total estimé"
+      },
+      "warnings": "Avertissements",
+      "itinerary": "Itinéraire jour par jour",
+      "book": "Réserver le vol",
+      "close": "Fermer",
+      "tip": "Conseil",
+      "estimatedCost": "Jour {day}"
+    }
+  },
+  "settings": {
+    "language": "Langue",
+    "theme": "Thème",
+    "light": "Clair",
+    "dark": "Sombre",
+    "system": "Système"
+  }
+}

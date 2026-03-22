@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { RefreshCw } from "lucide-react";
 import DealCard from "./DealCard";
 import DealDetail from "./DealDetail";
+import { useTranslations } from "next-intl";
 
 interface Deal {
   id: string;
@@ -30,6 +31,7 @@ interface DealsSectionProps {
 }
 
 export default function DealsSection({ alertId }: DealsSectionProps) {
+  const t = useTranslations("deals");
   const [deals, setDeals] = useState<Deal[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -43,11 +45,11 @@ export default function DealsSection({ alertId }: DealsSectionProps) {
         ? `/api/deals?alertId=${alertId}&status=READY`
         : `/api/deals?status=READY`;
       const res = await fetch(url);
-      if (!res.ok) throw new Error("Error al cargar ofertas");
+      if (!res.ok) throw new Error("Error");
       const data = await res.json();
       setDeals(data.deals ?? []);
     } catch {
-      setError("No se pudieron cargar las ofertas.");
+      setError(t("loadError"));
     } finally {
       setLoading(false);
     }
@@ -60,10 +62,10 @@ export default function DealsSection({ alertId }: DealsSectionProps) {
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold text-slate-900">
-          Ofertas encontradas
+        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+          {t("title")}
           {!loading && (
-            <span className="ml-2 text-sm font-normal text-slate-400">
+            <span className="ml-2 text-sm font-normal text-slate-400 dark:text-slate-500">
               ({deals.length})
             </span>
           )}
@@ -71,32 +73,37 @@ export default function DealsSection({ alertId }: DealsSectionProps) {
         <button
           onClick={fetchDeals}
           disabled={loading}
-          className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 px-3 py-2 rounded-lg hover:bg-slate-100 transition-colors disabled:opacity-40"
+          className="flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-40"
         >
           <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
-          Actualizar
+          {t("refresh")}
         </button>
       </div>
 
       {loading && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-52 bg-slate-100 rounded-xl animate-pulse" />
+            <div
+              key={i}
+              className="h-52 bg-slate-100 dark:bg-slate-800 rounded-xl animate-pulse"
+            />
           ))}
         </div>
       )}
 
       {!loading && error && (
-        <div className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl p-4">
+        <div className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950 border border-red-100 dark:border-red-900 rounded-xl p-4">
           {error}
         </div>
       )}
 
       {!loading && !error && deals.length === 0 && (
-        <div className="border-2 border-dashed border-slate-200 rounded-xl p-8 text-center">
-          <p className="text-sm font-medium text-slate-400">Aún no hay ofertas</p>
-          <p className="text-xs text-slate-300 mt-1">
-            El sistema buscará ofertas automáticamente según la frecuencia configurada
+        <div className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl p-8 text-center">
+          <p className="text-sm font-medium text-slate-400 dark:text-slate-500">
+            {t("empty.title")}
+          </p>
+          <p className="text-xs text-slate-300 dark:text-slate-600 mt-1">
+            {t("empty.subtitle")}
           </p>
         </div>
       )}
