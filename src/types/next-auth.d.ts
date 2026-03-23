@@ -1,25 +1,3 @@
+// next-auth Session type is handled via AppSession in src/lib/get-session.ts
+// Module augmentation was removed due to next-auth v4 + Next.js 15 inference issues.
 export {};
-
-declare module "next-auth" {
-  interface Session {
-    user: {
-      id: string;
-      name?: string | null;
-      email?: string | null;
-      image?: string | null;
-    };
-  }
-
-  interface User {
-    id: string;
-    name?: string | null;
-    email?: string | null;
-    image?: string | null;
-  }
-}
-
-declare module "next-auth/jwt" {
-  interface JWT {
-    id?: string;
-  }
-}

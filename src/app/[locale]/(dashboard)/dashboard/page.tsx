@@ -1,5 +1,4 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/get-session";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
@@ -10,7 +9,7 @@ import { Bell, TrendingDown, Plane, Star } from "lucide-react";
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
 
   if (!session?.user) {
     redirect("/login");
@@ -18,7 +17,7 @@ export default async function DashboardPage() {
 
   const t = await getTranslations("dashboard");
 
-  const userId = (session.user as { id: string }).id;
+  const userId = session.user.id;
 
   const [alertCount, dealCount, bestScoreDeal, cheapestDeal] = await Promise.all([
     prisma.searchAlert.count({ where: { userId, isActive: true } }),
