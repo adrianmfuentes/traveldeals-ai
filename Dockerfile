@@ -51,6 +51,7 @@ ENV GROQ_API_KEY=$GROQ_API_KEY
 ENV SERPAPI_API_KEY=$SERPAPI_API_KEY
 
 RUN npm run build
+RUN mkdir -p /app/public
 
 # ── Stage 3: runner ───────────────────────────────────────────────────────────
 FROM node:22-alpine AS runner
