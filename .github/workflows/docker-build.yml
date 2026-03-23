@@ -28,6 +28,7 @@ jobs:
         with:
           repository: adrianmfuentes/platform-core
           path: platform-core
+          token: ${{ secrets.PLATFORM_CORE_TOKEN }}
 
       - name: Set up QEMU (ARM64 support)
         uses: docker/setup-qemu-action@v3
