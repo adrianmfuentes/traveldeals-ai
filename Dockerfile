@@ -74,6 +74,7 @@ COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
+COPY --from=builder /app/node_modules/bcryptjs ./node_modules/bcryptjs
 RUN mkdir -p node_modules/.bin && \
     ln -sf ../prisma/build/index.js node_modules/.bin/prisma && \
     chmod +x node_modules/prisma/build/index.js
