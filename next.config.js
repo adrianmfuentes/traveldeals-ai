@@ -43,7 +43,7 @@ const nextConfig = {
             "style-src 'self' 'unsafe-inline'",
             // Next.js SSR hydration requires unsafe-inline/unsafe-eval in dev
             process.env.NODE_ENV === "production"
-              ? "script-src 'self'"
+              ? "script-src 'self' 'unsafe-inline'"
               : "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
             "img-src 'self' data: https:",
             "font-src 'self'",
