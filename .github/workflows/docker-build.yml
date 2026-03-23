@@ -18,8 +18,16 @@ jobs:
       packages: write
 
     steps:
-      - name: Checkout
+      - name: Checkout traveldeals-ai
         uses: actions/checkout@v4
+        with:
+          path: traveldeals-ai
+
+      - name: Checkout platform-core
+        uses: actions/checkout@v4
+        with:
+          repository: adrianmfuentes/platform-core
+          path: platform-core
 
       - name: Set up QEMU (ARM64 support)
         uses: docker/setup-qemu-action@v3
@@ -38,7 +46,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          dockerfile: Dockerfile
+          file: traveldeals-ai/Dockerfile
           platforms: linux/arm64
           push: true
           tags: ${{ env.IMAGE_APP }}:latest
@@ -49,7 +57,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          dockerfile: Dockerfile.worker
+          file: traveldeals-ai/Dockerfile.worker
           platforms: linux/arm64
           push: true
           tags: ${{ env.IMAGE_WORKER }}:latest

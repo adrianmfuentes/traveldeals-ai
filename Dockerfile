@@ -1,6 +1,8 @@
 # =============================================================================
 # TravelDeals AI — Next.js app
 # Multi-stage build for minimal production image
+# Build context must be the parent directory containing both
+# traveldeals-ai/ and platform-core/ as siblings.
 # =============================================================================
 
 # ── Stage 1: deps ─────────────────────────────────────────────────────────────
@@ -8,8 +10,11 @@ FROM node:22-alpine AS deps
 RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 
-COPY package.json package-lock.json* ./
-COPY prisma ./prisma/
+# platform-core must be at /platform-core so that the file:../platform-core
+# reference in package.json resolves correctly from /app
+COPY platform-core/ /platform-core/
+COPY traveldeals-ai/package.json traveldeals-ai/package-lock.json* ./
+COPY traveldeals-ai/prisma ./prisma/
 
 RUN npm ci --ignore-scripts
 RUN npx prisma generate
@@ -19,8 +24,9 @@ FROM node:22-alpine AS builder
 RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 
+COPY --from=deps /platform-core/ /platform-core/
 COPY --from=deps /app/node_modules ./node_modules
-COPY . .
+COPY traveldeals-ai/ .
 
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
