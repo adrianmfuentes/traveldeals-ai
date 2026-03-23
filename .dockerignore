@@ -7,6 +7,7 @@ dist
 build
 
 # Dev / local files
+.npmrc
 .env
 .env.local
 .env.*.local
