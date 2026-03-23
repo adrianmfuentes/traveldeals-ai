@@ -33,4 +33,4 @@ COPY traveldeals-ai/ .
 
 USER worker
 
-CMD ["node", "--import", "tsx/esm", "worker/src/index.ts"]
+CMD ["node_modules/.bin/tsx", "worker/src/index.ts"]
