@@ -17,6 +17,5 @@ export type AppSession = {
  * authOptions typed as the broad NextAuthOptions, so we assert here once.
  */
 export async function getAppSession(): Promise<AppSession | null> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return getServerSession(authOptions) as any as AppSession | null;
+  return getServerSession(authOptions) as unknown as AppSession | null;
 }
