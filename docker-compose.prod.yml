@@ -43,7 +43,7 @@ services:
       retries: 3
       start_period: 15s
     networks:
-      - nginx-proxy-manager_default
+      - traveldeals_net
 
   # ── Background worker ────────────────────────────────────────────────────────
   worker:
@@ -61,8 +61,8 @@ services:
       migrate:
         condition: service_completed_successfully
     networks:
-      - nginx-proxy-manager_default
+      - traveldeals_net
 
 networks:
-  nginx-proxy-manager_default:
-    external: true
+  traveldeals_net:
+    driver: bridge
