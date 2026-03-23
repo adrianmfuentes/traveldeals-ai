@@ -45,7 +45,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    command: npx prisma migrate deploy
+    command: npx prisma@5 migrate deploy
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-traveldeals}:${POSTGRES_PASSWORD}@postgres:5432/traveldeals
       DIRECT_URL:   postgresql://${POSTGRES_USER:-traveldeals}:${POSTGRES_PASSWORD}@postgres:5432/traveldeals
