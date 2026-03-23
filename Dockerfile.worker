@@ -31,6 +31,8 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/node_modules/.prisma ./node_modules/.prisma
 COPY traveldeals-ai/ .
 
+RUN ln -s /app/node_modules /platform-core/node_modules
+
 USER worker
 
 CMD ["node_modules/.bin/tsx", "worker/src/index.ts"]
