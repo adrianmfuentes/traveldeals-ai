@@ -13,9 +13,10 @@ const patchAlertSchema = z.object({
 // PATCH /api/alerts/[id] — Actualizar alerta (toggle isActive, etc.)
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
@@ -30,7 +31,7 @@ export async function PATCH(
     }
 
     const alert = await prisma.searchAlert.findUnique({
-      where: { id: params.id },
+      where: { id },
       select: { userId: true },
     });
 
@@ -46,7 +47,7 @@ export async function PATCH(
     const data = patchAlertSchema.parse(body);
 
     const updated = await prisma.searchAlert.update({
-      where: { id: params.id },
+      where: { id },
       data,
     });
 
@@ -66,9 +67,10 @@ export async function PATCH(
 // DELETE /api/alerts/[id] — Eliminar alerta
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
@@ -83,7 +85,7 @@ export async function DELETE(
     }
 
     const alert = await prisma.searchAlert.findUnique({
-      where: { id: params.id },
+      where: { id },
       select: { userId: true },
     });
 
@@ -95,7 +97,7 @@ export async function DELETE(
       return NextResponse.json({ error: "No autorizado" }, { status: 403 });
     }
 
-    await prisma.searchAlert.delete({ where: { id: params.id } });
+    await prisma.searchAlert.delete({ where: { id } });
 
     return NextResponse.json({ success: true });
   } catch (error) {
