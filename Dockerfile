@@ -24,6 +24,7 @@ COPY . .
 
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
+ENV NODE_OPTIONS="--max-old-space-size=2048"
 
 # Build requires dummy values for env validation at build time
 # Real values are injected at runtime via docker-compose / secrets
