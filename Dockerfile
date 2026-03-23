@@ -28,6 +28,10 @@ COPY --from=deps /platform-core/ /platform-core/
 COPY --from=deps /app/node_modules ./node_modules
 COPY traveldeals-ai/ .
 
+# Symlink app node_modules into platform-core so TypeScript can resolve
+# packages (next-auth, bcryptjs, etc.) when type-checking platform-core files
+RUN ln -s /app/node_modules /platform-core/node_modules
+
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 ENV NODE_OPTIONS="--max-old-space-size=2048"
