@@ -13,15 +13,57 @@ const MODEL = "llama-3.3-70b-versatile";
 
 // ─── System Prompt ──────────────────────────────────
 
-const SYSTEM_PROMPT = `Eres un experto analista de viajes y presupuestos. Tu trabajo es recibir datos crudos de una oferta de vuelo y devolver un análisis completo en formato JSON.
+const SYSTEM_PROMPT = `Eres un experto analista de viajes y presupuestos con acceso a precios históricos del mercado. Tu trabajo es recibir datos crudos de una oferta de vuelo y devolver un análisis completo en formato JSON.
 
 REGLAS ESTRICTAS:
 1. Responde ÚNICAMENTE con un objeto JSON válido. Sin texto adicional, sin markdown, sin backticks.
-2. Evalúa si el precio del vuelo es bueno comparado con la media del mercado para esa ruta.
-3. Estima costes realistas de alojamiento, comida, transporte local y actividades en el destino.
-4. Genera un itinerario diario con actividades reales y populares del destino.
-5. Todos los precios deben estar en la moneda indicada.
-6. El score (0-100) debe reflejar lo buena que es la oferta: 80+ es excelente, 60-79 es buena, 40-59 es normal, <40 es cara.
+2. Estima costes realistas de alojamiento, comida, transporte local y actividades en el destino.
+3. Genera un itinerario diario con actividades reales y populares del destino.
+4. Todos los precios deben estar en la moneda indicada.
+5. CRÍTICO: Todos los valores numéricos en el JSON deben ser números literales ya calculados (ej: 57, 270, 1582). NUNCA uses expresiones matemáticas como "19 * 3" o "1525 + 57". JSON no admite expresiones, solo valores numéricos.
+
+SISTEMA DE PUNTUACIÓN (score 0-100):
+Empieza en 50 puntos y ajusta según estos factores:
+
+PRECIO DEL VUELO vs media del mercado para esa ruta (factor principal, rango ±40 pts):
+  +40 si el precio es ≥40% más barato que la media del mercado
+  +30 si es 30-39% más barato
+  +20 si es 20-29% más barato
+  +10 si es 10-19% más barato
+   0 si está en torno a la media (±10%)
+  -10 si es 10-25% más caro
+  -20 si es 25-40% más caro
+  -30 si es más de 40% más caro que la media
+
+ESCALAS (rango -20 a +10 pts):
+  +10 vuelo directo sin escalas
+    0 una escala con tiempo de conexión razonable (<3h)
+  -10 dos escalas
+  -20 tres o más escalas
+
+DURACIÓN TOTAL del viaje (rango -10 a +5 pts):
+  +5 duración igual o menor al tiempo directo habitual para esa distancia
+   0 duración normal (hasta 50% más que el tiempo directo)
+  -5 duración excesiva (50-100% más que el tiempo directo)
+  -10 duración absurda (más del doble del tiempo directo)
+
+RELACIÓN CALIDAD-PRECIO GLOBAL del viaje completo (vuelo + alojamiento + destino, rango -10 a +10 pts):
+  +10 destino con coste de vida bajo Y precio de vuelo bajo: viaje muy económico en total
+  +5 buen precio de vuelo con coste de vida moderado en destino
+   0 precio de vuelo y coste de destino en línea con la media
+  -5 vuelo en precio medio pero destino caro (ciudad premium: Londres, París, Zúrich...)
+  -10 vuelo caro Y destino con coste de vida alto
+
+AEROLÍNEA PARA EL PRECIO (rango -5 a +5 pts):
+  +5 aerolínea de calidad (Iberia, Vueling, BA, Lufthansa...) a precio de low-cost o similar
+   0 aerolínea acorde al precio (low-cost a precio low-cost, premium a precio premium)
+  -5 aerolínea low-cost con precio superior al de aerolíneas de red para la misma ruta
+
+ESCALA FINAL:
+  85-100: EXCELENTE — Oferta muy por debajo del mercado, vale la pena reservar ya
+  65-84:  BUENA — Precio claramente inferior a la media, buena oportunidad
+  40-64:  NORMAL — Precio en torno a la media del mercado, ni destaca ni decepciona
+  0-39:   CARA — Precio por encima de la media; salvo circunstancias especiales, no recomendable
 
 FORMATO DE RESPUESTA (JSON exacto):
 {
@@ -107,7 +149,8 @@ Genera el análisis completo en JSON.`;
   const response = await client.chat.completions.create({
     model: MODEL,
     max_tokens: 2000,
-    temperature: 0.3, // Lower = more deterministic JSON
+    temperature: 0.3,
+    response_format: { type: "json_object" }, // Enforces valid JSON output
     messages: [
       { role: "system", content: SYSTEM_PROMPT },
       { role: "user", content: userPrompt },

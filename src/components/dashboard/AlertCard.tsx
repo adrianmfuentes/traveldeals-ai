@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { MapPin, Users, Calendar, Clock, Trash2, Bell, BellOff, Tag, ArrowRight } from "lucide-react";
+import { MapPin, Users, Calendar, Clock, Trash2, Pencil, Bell, BellOff, Tag, ArrowRight } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 interface SearchAlertWithCount {
@@ -21,12 +21,14 @@ interface SearchAlertWithCount {
 interface AlertCardProps {
   alert: SearchAlertWithCount;
   onUpdate: () => void;
+  onEdit: () => void;
 }
 
-export default function AlertCard({ alert, onUpdate }: AlertCardProps) {
+export default function AlertCard({ alert, onUpdate, onEdit }: AlertCardProps) {
   const t = useTranslations("alerts");
   const [toggling, setToggling] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const FREQUENCY_LABELS: Record<number, string> = {
     60: t("form.freq60"),
@@ -50,13 +52,18 @@ export default function AlertCard({ alert, onUpdate }: AlertCardProps) {
   }
 
   async function handleDelete() {
-    if (!confirm(t("deleteConfirm"))) return;
     setDeleting(true);
     try {
       const res = await fetch(`/api/alerts/${alert.id}`, { method: "DELETE" });
-      if (res.ok) onUpdate();
+      if (res.ok) {
+        window.dispatchEvent(
+          new CustomEvent("alert:deleted", { detail: { alertId: alert.id } })
+        );
+        onUpdate();
+      }
     } finally {
       setDeleting(false);
+      setConfirmDelete(false);
     }
   }
 
@@ -145,7 +152,7 @@ export default function AlertCard({ alert, onUpdate }: AlertCardProps) {
         <div className="mt-3 flex items-center gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
           <button
             onClick={handleToggle}
-            disabled={toggling}
+            disabled={toggling || confirmDelete}
             className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors ${
               alert.isActive
                 ? "bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900"
@@ -156,14 +163,40 @@ export default function AlertCard({ alert, onUpdate }: AlertCardProps) {
             {toggling ? "..." : alert.isActive ? t("active") : t("inactive")}
           </button>
 
-          <button
-            onClick={handleDelete}
-            disabled={deleting}
-            className="ml-auto flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg text-slate-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 transition-colors disabled:opacity-50"
-          >
-            <Trash2 size={11} />
-            {deleting ? t("deleting") : t("delete")}
-          </button>
+          {!confirmDelete ? (
+            <>
+              <button
+                onClick={onEdit}
+                className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950 transition-colors"
+              >
+                <Pencil size={11} />
+                {t("edit")}
+              </button>
+              <button
+                onClick={() => setConfirmDelete(true)}
+                className="ml-auto flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg text-slate-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
+              >
+                <Trash2 size={11} />
+                {t("delete")}
+              </button>
+            </>
+          ) : (
+            <div className="ml-auto flex items-center gap-1.5">
+              <button
+                onClick={() => setConfirmDelete(false)}
+                className="text-xs px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+              >
+                {t("cancel")}
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="text-xs px-2.5 py-1.5 rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 transition-colors"
+              >
+                {deleting ? t("deleting") : t("confirmDelete")}
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

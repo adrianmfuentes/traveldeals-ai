@@ -33,25 +33,32 @@ export async function GET(req: NextRequest) {
     const status: DealStatus = VALID_STATUSES.includes(rawStatus as DealStatus)
       ? (rawStatus as DealStatus)
       : "READY";
-    const limit = Math.min(Math.max(1, parseInt(searchParams.get("limit") ?? "20") || 20), 50);
+    const PAGE_SIZE = 4;
+    const offset = Math.max(0, parseInt(searchParams.get("offset") ?? "0") || 0);
     const alertId = searchParams.get("alertId");
 
-    const deals = await prisma.deal.findMany({
-      where: {
-        userId: session.user.id,
-        status,
-        ...(alertId ? { alertId } : {}),
-      },
-      orderBy: { createdAt: "desc" },
-      take: limit,
-      include: {
-        alert: {
-          select: { origin: true, destinations: true },
-        },
-      },
-    });
+    const where = {
+      userId: session.user.id,
+      status,
+      ...(alertId ? { alertId } : {}),
+    };
 
-    return NextResponse.json({ deals });
+    const [deals, total] = await Promise.all([
+      prisma.deal.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        take: PAGE_SIZE,
+        skip: offset,
+        include: {
+          alert: {
+            select: { origin: true, destinations: true },
+          },
+        },
+      }),
+      prisma.deal.count({ where }),
+    ]);
+
+    return NextResponse.json({ deals, total });
   } catch (error) {
     log.error("Failed to fetch deals", toLogError(error));
     return NextResponse.json(

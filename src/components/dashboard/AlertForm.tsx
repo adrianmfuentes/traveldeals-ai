@@ -4,26 +4,58 @@ import { useState } from "react";
 import { X } from "lucide-react";
 import { useTranslations } from "next-intl";
 
-interface AlertFormProps {
-  onSuccess: (alertId: string) => void;
-  onClose: () => void;
+interface AlertData {
+  id?: string;
+  origin?: string;
+  destinations?: string[];
+  passengers?: number;
+  dateFrom?: string;
+  dateTo?: string;
+  tripDurationMin?: number | null;
+  tripDurationMax?: number | null;
+  maxBudget?: number | null;
+  currency?: string;
+  frequencyMinutes?: number;
 }
 
-export default function AlertForm({ onSuccess, onClose }: AlertFormProps) {
+interface AlertFormProps {
+  onSuccess: (alertId: string, enqueued: boolean) => void;
+  onClose: () => void;
+  initialData?: AlertData;
+}
+
+const toDateInput = (iso: string) => iso.split("T")[0];
+
+export default function AlertForm({ onSuccess, onClose, initialData }: AlertFormProps) {
   const t = useTranslations("alerts.form");
+  const isEdit = !!initialData?.id;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const [origin, setOrigin] = useState("");
-  const [destinations, setDestinations] = useState("");
-  const [passengers, setPassengers] = useState(1);
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
-  const [tripDurationMin, setTripDurationMin] = useState<number | "">("");
-  const [tripDurationMax, setTripDurationMax] = useState<number | "">("");
-  const [maxBudget, setMaxBudget] = useState<number | "">("");
-  const [currency, setCurrency] = useState("EUR");
-  const [frequencyMinutes, setFrequencyMinutes] = useState(720);
+  const [origin, setOrigin] = useState(initialData?.origin ?? "");
+  const [destinations, setDestinations] = useState(
+    initialData?.destinations?.join(", ") ?? ""
+  );
+  const [passengers, setPassengers] = useState(initialData?.passengers ?? 1);
+  const [dateFrom, setDateFrom] = useState(
+    initialData?.dateFrom ? toDateInput(initialData.dateFrom) : ""
+  );
+  const [dateTo, setDateTo] = useState(
+    initialData?.dateTo ? toDateInput(initialData.dateTo) : ""
+  );
+  const [tripDurationMin, setTripDurationMin] = useState<number | "">(
+    initialData?.tripDurationMin ?? ""
+  );
+  const [tripDurationMax, setTripDurationMax] = useState<number | "">(
+    initialData?.tripDurationMax ?? ""
+  );
+  const [maxBudget, setMaxBudget] = useState<number | "">(
+    initialData?.maxBudget ?? ""
+  );
+  const [currency, setCurrency] = useState(initialData?.currency ?? "EUR");
+  const [frequencyMinutes, setFrequencyMinutes] = useState(
+    initialData?.frequencyMinutes ?? 720
+  );
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -56,15 +88,20 @@ export default function AlertForm({ onSuccess, onClose }: AlertFormProps) {
         tripDurationMax,
         currency,
         frequencyMinutes,
+        maxBudget: maxBudget !== "" ? maxBudget : null,
       };
 
-      if (maxBudget !== "") body.maxBudget = maxBudget;
+      // Remove null maxBudget for create (API expects it absent, not null)
+      if (!isEdit && body.maxBudget === null) delete body.maxBudget;
 
-      const res = await fetch("/api/alerts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
+      const res = await fetch(
+        isEdit ? `/api/alerts/${initialData!.id}` : "/api/alerts",
+        {
+          method: isEdit ? "PATCH" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        }
+      );
 
       const data = await res.json();
 
@@ -73,7 +110,9 @@ export default function AlertForm({ onSuccess, onClose }: AlertFormProps) {
         return;
       }
 
-      onSuccess(data.alert.id);
+      const alertId = isEdit ? initialData!.id! : data.alert.id;
+      const enqueued: boolean = isEdit ? (data.enqueued ?? true) : true;
+      onSuccess(alertId, enqueued);
     } catch {
       setError(t("error"));
     } finally {
@@ -91,7 +130,7 @@ export default function AlertForm({ onSuccess, onClose }: AlertFormProps) {
       <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto border border-transparent dark:border-slate-800">
         <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-800">
           <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-            {t("title")}
+            {isEdit ? t("editTitle") : t("title")}
           </h2>
           <button
             onClick={onClose}
@@ -259,7 +298,9 @@ export default function AlertForm({ onSuccess, onClose }: AlertFormProps) {
               disabled={loading}
               className="flex-1 bg-blue-600 text-white rounded-lg px-4 py-2.5 text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              {loading ? t("creating") : t("create")}
+              {loading
+                ? isEdit ? t("saving") : t("creating")
+                : isEdit ? t("save") : t("create")}
             </button>
           </div>
         </form>

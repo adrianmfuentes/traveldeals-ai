@@ -46,7 +46,7 @@ export async function GET(req: NextRequest) {
     const alerts = await prisma.searchAlert.findMany({
       where: { userId: session.user.id },
       orderBy: { createdAt: "desc" },
-      include: { _count: { select: { deals: true } } },
+      include: { _count: { select: { deals: { where: { status: "READY" } } } } },
     });
 
     return NextResponse.json({ alerts });

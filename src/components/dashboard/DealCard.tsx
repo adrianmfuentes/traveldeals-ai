@@ -28,36 +28,36 @@ interface DealCardProps {
 function ScoreBar({ score }: { score: number }) {
   const t = useTranslations("deals.score");
 
-  const color =
-    score >= 80
-      ? "bg-emerald-500"
-      : score >= 60
-      ? "bg-amber-400"
-      : "bg-red-400";
-  const label =
-    score >= 80 ? t("excellent") : score >= 60 ? t("good") : t("average");
+  const tier =
+    score >= 85 ? "excellent" :
+    score >= 65 ? "good" :
+    score >= 40 ? "average" : "poor";
+
+  const barColor =
+    tier === "excellent" ? "bg-emerald-500" :
+    tier === "good"      ? "bg-blue-500" :
+    tier === "average"   ? "bg-amber-400" :
+                           "bg-red-400";
   const textColor =
-    score >= 80
-      ? "text-emerald-700 dark:text-emerald-400"
-      : score >= 60
-      ? "text-amber-700 dark:text-amber-400"
-      : "text-red-700 dark:text-red-400";
+    tier === "excellent" ? "text-emerald-700 dark:text-emerald-400" :
+    tier === "good"      ? "text-blue-700 dark:text-blue-400" :
+    tier === "average"   ? "text-amber-700 dark:text-amber-400" :
+                           "text-red-700 dark:text-red-400";
   const bgColor =
-    score >= 80
-      ? "bg-emerald-50 dark:bg-emerald-950"
-      : score >= 60
-      ? "bg-amber-50 dark:bg-amber-950"
-      : "bg-red-50 dark:bg-red-950";
+    tier === "excellent" ? "bg-emerald-50 dark:bg-emerald-950" :
+    tier === "good"      ? "bg-blue-50 dark:bg-blue-950" :
+    tier === "average"   ? "bg-amber-50 dark:bg-amber-950" :
+                           "bg-red-50 dark:bg-red-950";
 
   return (
     <div className={`flex items-center gap-2 px-2.5 py-1 rounded-full ${bgColor}`}>
       <div className="w-16 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
         <div
-          className={`h-full ${color} rounded-full`}
+          className={`h-full ${barColor} rounded-full`}
           style={{ width: `${score}%` }}
         />
       </div>
-      <span className={`text-xs font-semibold ${textColor}`}>{label}</span>
+      <span className={`text-xs font-semibold ${textColor}`}>{t(tier)}</span>
     </div>
   );
 }
@@ -72,12 +72,12 @@ export default function DealCard({ deal, onClick }: DealCardProps) {
       year: "numeric",
     });
 
+  const score = deal.aiScore ?? 0;
   const accentColor =
-    (deal.aiScore ?? 0) >= 80
-      ? "from-emerald-400 to-teal-400"
-      : (deal.aiScore ?? 0) >= 60
-      ? "from-amber-400 to-yellow-300"
-      : "from-blue-400 to-cyan-400";
+    score >= 85 ? "from-emerald-400 to-teal-400" :
+    score >= 65 ? "from-blue-400 to-cyan-400" :
+    score >= 40 ? "from-amber-400 to-yellow-300" :
+                  "from-red-400 to-rose-400";
 
   return (
     <div

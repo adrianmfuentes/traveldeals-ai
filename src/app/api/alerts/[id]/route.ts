@@ -3,13 +3,25 @@ import { getAppSession } from "@/lib/get-session";
 import { prisma } from "@/lib/prisma";
 import { rateLimit, getIdentifier } from "@/lib/rate-limit";
 import { createLogger, toLogError } from "@/lib/logger";
+import { searchAlertsQueue } from "@/lib/queue";
 import { z } from "zod";
 
 const log = createLogger("API:alerts");
 
+const VALID_CURRENCIES = ["EUR", "USD", "GBP", "CHF", "JPY", "CAD", "AUD"] as const;
+
 const patchAlertSchema = z.object({
   isActive: z.boolean().optional(),
-  frequencyMinutes: z.number().int().min(60).optional(),
+  origin: z.string().min(2).max(100).optional(),
+  destinations: z.array(z.string().min(2).max(100)).min(1).max(10).optional(),
+  passengers: z.number().int().min(1).max(10).optional(),
+  dateFrom: z.string().datetime().optional(),
+  dateTo: z.string().datetime().optional(),
+  tripDurationMin: z.number().int().min(1).max(365).optional(),
+  tripDurationMax: z.number().int().min(1).max(365).optional(),
+  maxBudget: z.number().positive().max(1_000_000).nullable().optional(),
+  currency: z.enum(VALID_CURRENCIES).optional(),
+  frequencyMinutes: z.number().int().min(0).max(10080).optional(),
 });
 
 // PATCH /api/alerts/[id] — Actualizar alerta (toggle isActive, etc.)
@@ -48,12 +60,51 @@ export async function PATCH(
     const body = await req.json();
     const data = patchAlertSchema.parse(body);
 
+    // Build the DB update, converting date strings and resetting the run timer
+    const dbData: Record<string, unknown> = { ...data };
+    if (data.dateFrom) dbData.dateFrom = new Date(data.dateFrom);
+    if (data.dateTo) dbData.dateTo = new Date(data.dateTo);
+
+    const isSearchUpdate =
+      data.origin !== undefined ||
+      data.destinations !== undefined ||
+      data.dateFrom !== undefined ||
+      data.dateTo !== undefined ||
+      data.passengers !== undefined ||
+      data.tripDurationMin !== undefined ||
+      data.tripDurationMax !== undefined ||
+      data.maxBudget !== undefined ||
+      data.currency !== undefined;
+
+    if (isSearchUpdate) {
+      dbData.nextRunAt = new Date();
+      // Delete stale deals so the UI shows a clean slate for the new search
+      await prisma.deal.deleteMany({ where: { alertId: id } });
+    }
+
     const updated = await prisma.searchAlert.update({
       where: { id },
-      data,
+      data: dbData,
     });
 
-    return NextResponse.json({ alert: updated });
+    // Enqueue immediately when search parameters were changed
+    if (isSearchUpdate) {
+      try {
+        await searchAlertsQueue.add(
+          `alert-${id}`,
+          { alertId: id },
+          {
+            jobId: `alert-${id}-${Date.now()}`,
+            attempts: 3,
+            backoff: { type: "exponential", delay: 5_000 },
+          }
+        );
+      } catch (queueErr) {
+        log.warn("Failed to enqueue alert after edit", toLogError(queueErr));
+      }
+    }
+
+    return NextResponse.json({ alert: updated, enqueued: isSearchUpdate });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(

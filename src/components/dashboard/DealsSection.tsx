@@ -1,13 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { RefreshCw } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Loader2, RefreshCw } from "lucide-react";
 import DealCard from "./DealCard";
 import DealDetail from "./DealDetail";
 import { useTranslations } from "next-intl";
 
 interface Deal {
   id: string;
+  alertId: string;
   origin: string;
   destination: string;
   departureDate: string;
@@ -26,6 +27,8 @@ interface Deal {
   hotelPrice?: number | null;
 }
 
+const PAGE_SIZE = 4;
+
 interface DealsSectionProps {
   alertId?: string;
 }
@@ -33,37 +36,86 @@ interface DealsSectionProps {
 export default function DealsSection({ alertId }: DealsSectionProps) {
   const t = useTranslations("deals");
   const [deals, setDeals] = useState<Deal[]>([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState("");
   const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
 
-  async function fetchDeals() {
-    setLoading(true);
-    setError("");
-    try {
-      const url = alertId
-        ? `/api/deals?alertId=${alertId}&status=READY`
-        : `/api/deals?status=READY`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error("Error");
-      const data = await res.json();
-      setDeals(data.deals ?? []);
-    } catch {
-      setError(t("loadError"));
-    } finally {
-      setLoading(false);
-    }
+  // Keep a stable ref to current deals length for "load more"
+  const dealsLengthRef = useRef(0);
+  dealsLengthRef.current = deals.length;
+
+  function buildUrl(offset: number) {
+    const params = new URLSearchParams({ status: "READY", offset: String(offset) });
+    if (alertId) params.set("alertId", alertId);
+    return `/api/deals?${params}`;
   }
 
-  useEffect(() => {
-    fetchDeals();
+  const fetchDeals = useCallback(async (reset = true) => {
+    if (reset) {
+      setLoading(true);
+      setError("");
+    } else {
+      setLoadingMore(true);
+    }
+    try {
+      const offset = reset ? 0 : dealsLengthRef.current;
+      const res = await fetch(buildUrl(offset));
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      const incoming: Deal[] = data.deals ?? [];
+      setTotal(data.total ?? 0);
+      setDeals((prev) => (reset ? incoming : [...prev, ...incoming]));
+    } catch {
+      if (reset) setError(t("loadError"));
+    } finally {
+      if (reset) setLoading(false);
+      else setLoadingMore(false);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [alertId]);
 
   useEffect(() => {
-    function onRefresh() { fetchDeals(); }
+    fetchDeals(true);
+  }, [fetchDeals]);
+
+  useEffect(() => {
+    function onRefresh() { fetchDeals(true); }
+
+    function removeAlertDeals(targetAlertId: string) {
+      // Capture removed count before the state update, then adjust total separately
+      setDeals((prev) => {
+        const next = prev.filter((d) => d.alertId !== targetAlertId);
+        const removed = prev.length - next.length;
+        if (removed > 0) {
+          setTotal((t) => Math.max(0, t - removed));
+        }
+        return next;
+      });
+    }
+
+    function onAlertDeleted(e: Event) {
+      const { alertId: deletedId } = (e as CustomEvent<{ alertId: string }>).detail;
+      removeAlertDeals(deletedId);
+    }
+
+    function onAlertEdited(e: Event) {
+      const { alertId: editedId } = (e as CustomEvent<{ alertId: string }>).detail;
+      removeAlertDeals(editedId);
+    }
+
     window.addEventListener("deals:refresh", onRefresh);
-    return () => window.removeEventListener("deals:refresh", onRefresh);
-  }, [alertId]);
+    window.addEventListener("alert:deleted", onAlertDeleted);
+    window.addEventListener("alert:edited", onAlertEdited);
+    return () => {
+      window.removeEventListener("deals:refresh", onRefresh);
+      window.removeEventListener("alert:deleted", onAlertDeleted);
+      window.removeEventListener("alert:edited", onAlertEdited);
+    };
+  }, [fetchDeals]);
+
+  const hasMore = deals.length < total;
 
   return (
     <div>
@@ -72,12 +124,12 @@ export default function DealsSection({ alertId }: DealsSectionProps) {
           {t("title")}
           {!loading && (
             <span className="ml-2 text-sm font-normal text-slate-400 dark:text-slate-500">
-              ({deals.length})
+              ({total})
             </span>
           )}
         </h2>
         <button
-          onClick={fetchDeals}
+          onClick={() => fetchDeals(true)}
           disabled={loading}
           className="flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-40"
         >
@@ -115,15 +167,36 @@ export default function DealsSection({ alertId }: DealsSectionProps) {
       )}
 
       {!loading && !error && deals.length > 0 && (
-        <div className="grid gap-4 sm:grid-cols-2">
-          {deals.map((deal) => (
-            <DealCard
-              key={deal.id}
-              deal={deal}
-              onClick={() => setSelectedDeal(deal)}
-            />
-          ))}
-        </div>
+        <>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {deals.map((deal) => (
+              <DealCard
+                key={deal.id}
+                deal={deal}
+                onClick={() => setSelectedDeal(deal)}
+              />
+            ))}
+          </div>
+
+          {hasMore && (
+            <div className="mt-6 flex justify-center">
+              <button
+                onClick={() => fetchDeals(false)}
+                disabled={loadingMore}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 transition-colors"
+              >
+                {loadingMore ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin" />
+                    {t("loadingMore")}
+                  </>
+                ) : (
+                  t("loadMore", { count: Math.min(PAGE_SIZE, total - deals.length) })
+                )}
+              </button>
+            </div>
+          )}
+        </>
       )}
 
       {selectedDeal && (

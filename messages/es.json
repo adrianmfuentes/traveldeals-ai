@@ -4,7 +4,12 @@
     "register": "Crear cuenta gratis",
     "signOut": "Salir",
     "back": "Volver",
-    "panel": "Panel"
+    "panel": "Panel",
+    "deleteAccount": "Eliminar cuenta",
+    "deleteAccountConfirm": "Esto eliminará permanentemente tu cuenta y todos tus datos. Esta acción no se puede deshacer.",
+    "deleteAccountAction": "Eliminar definitivamente",
+    "cancel": "Cancelar",
+    "deleting": "Eliminando..."
   },
   "landing": {
     "badge": "Rastreador de precios de vuelos",
@@ -87,7 +92,10 @@
     "inactive": "Inactiva",
     "deleting": "Eliminando...",
     "delete": "Eliminar",
-    "deleteConfirm": "¿Eliminar esta alerta? Se borrarán también todas sus ofertas.",
+    "edit": "Editar",
+    "deleteConfirm": "Se borrarán también todas sus ofertas.",
+    "cancel": "Cancelar",
+    "confirmDelete": "Confirmar",
     "empty": {
       "title": "Crea tu primera alerta de viaje",
       "subtitle": "Configuraremos búsquedas automáticas y te avisaremos cuando detectemos una buena oferta",
@@ -119,6 +127,9 @@
       "freq360": "Cada 6 horas",
       "freq720": "Cada 12 horas",
       "freq1440": "Cada 24 horas",
+      "editTitle": "Editar alerta",
+      "save": "Guardar cambios",
+      "saving": "Guardando...",
       "success": "Alerta creada correctamente",
       "error": "Error al crear la alerta",
       "searching": "Buscando ofertas...",
@@ -135,6 +146,8 @@
   "deals": {
     "title": "Ofertas encontradas",
     "refresh": "Actualizar",
+    "loadMore": "Cargar {count} más",
+    "loadingMore": "Cargando...",
     "empty": {
       "title": "Aún no hay ofertas",
       "subtitle": "El sistema buscará ofertas automáticamente según la frecuencia configurada"
@@ -143,7 +156,8 @@
     "score": {
       "excellent": "Excelente",
       "good": "Buena oferta",
-      "average": "Regular"
+      "average": "Normal",
+      "poor": "Cara"
     },
     "card": {
       "flightFrom": "Vuelo desde",

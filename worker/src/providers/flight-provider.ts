@@ -56,16 +56,29 @@ const serpApiProvider: FlightProvider = {
         return [];
       }
 
+      // Clamp outbound date to at least tomorrow (SerpApi rejects past/today dates)
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(0, 0, 0, 0);
+      const outboundDate = params.dateFrom < tomorrow ? tomorrow : params.dateFrom;
+
+      // If the entire search window has passed, nothing to search
+      if (params.dateTo < tomorrow) {
+        log.warn("Search window is in the past, skipping", { dateTo: params.dateTo });
+        return [];
+      }
+
       for (const originCode of originCodes) {
       for (const dest of destinations) {
+        const returnDate = new Date(
+          outboundDate.getTime() + (params.tripDurationMin ?? 7) * 86_400_000
+        );
         const searchParams = new URLSearchParams({
           engine: "google_flights",
           departure_id: originCode,
           arrival_id: dest,
-          outbound_date: params.dateFrom.toISOString().split("T")[0],
-          return_date: new Date(
-            params.dateFrom.getTime() + (params.tripDurationMin ?? 7) * 86_400_000
-          ).toISOString().split("T")[0],
+          outbound_date: outboundDate.toISOString().split("T")[0],
+          return_date: returnDate.toISOString().split("T")[0],
           adults: String(params.passengers),
           currency: params.currency,
           api_key: process.env.SERPAPI_API_KEY!,
@@ -92,6 +105,7 @@ const serpApiProvider: FlightProvider = {
         });
 
         for (const flight of data.best_flights ?? data.other_flights ?? []) {
+          if (!flight.price || flight.price <= 0) continue;
           const leg = flight.flights?.[0];
           allOffers.push({
             origin: originCode,
@@ -99,7 +113,7 @@ const serpApiProvider: FlightProvider = {
             departureDate: leg?.departure_airport?.time ?? params.dateFrom.toISOString(),
             returnDate: undefined,
             airline: leg?.airline,
-            price: flight.price ?? 0,
+            price: flight.price,
             currency: params.currency,
             stops: (flight.flights?.length ?? 1) - 1,
             duration: `${Math.floor((flight.total_duration ?? 0) / 60)}h`,

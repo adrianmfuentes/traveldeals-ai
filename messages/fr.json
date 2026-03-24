@@ -4,7 +4,12 @@
     "register": "Créer un compte gratuit",
     "signOut": "Se déconnecter",
     "back": "Retour",
-    "panel": "Tableau de bord"
+    "panel": "Tableau de bord",
+    "deleteAccount": "Supprimer le compte",
+    "deleteAccountConfirm": "Cela supprimera définitivement votre compte et toutes vos données. Cette action est irréversible.",
+    "deleteAccountAction": "Supprimer définitivement",
+    "cancel": "Annuler",
+    "deleting": "Suppression..."
   },
   "landing": {
     "badge": "Traqueur de prix de vols",
@@ -87,7 +92,10 @@
     "inactive": "Inactive",
     "deleting": "Suppression...",
     "delete": "Supprimer",
-    "deleteConfirm": "Supprimer cette alerte ? Toutes ses offres seront également supprimées.",
+    "edit": "Modifier",
+    "deleteConfirm": "Toutes ses offres seront également supprimées.",
+    "cancel": "Annuler",
+    "confirmDelete": "Confirmer",
     "empty": {
       "title": "Créez votre première alerte de voyage",
       "subtitle": "Nous configurerons des recherches automatiques et vous avertirons lorsque nous détecterons une bonne offre",
@@ -119,6 +127,9 @@
       "freq360": "Toutes les 6 heures",
       "freq720": "Toutes les 12 heures",
       "freq1440": "Toutes les 24 heures",
+      "editTitle": "Modifier l'alerte",
+      "save": "Enregistrer",
+      "saving": "Enregistrement...",
       "success": "Alerte créée avec succès",
       "error": "Erreur lors de la création de l'alerte",
       "searching": "Recherche d'offres en cours...",
@@ -135,6 +146,8 @@
   "deals": {
     "title": "Offres trouvées",
     "refresh": "Actualiser",
+    "loadMore": "Charger {count} de plus",
+    "loadingMore": "Chargement...",
     "empty": {
       "title": "Pas encore d'offres",
       "subtitle": "Le système recherchera des offres automatiquement selon la fréquence configurée"
@@ -143,7 +156,8 @@
     "score": {
       "excellent": "Excellent",
       "good": "Bonne offre",
-      "average": "Moyenne"
+      "average": "Normale",
+      "poor": "Chère"
     },
     "card": {
       "flightFrom": "Vol depuis",

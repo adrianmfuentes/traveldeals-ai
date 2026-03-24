@@ -4,7 +4,12 @@
     "register": "Create free account",
     "signOut": "Sign out",
     "back": "Back",
-    "panel": "Panel"
+    "panel": "Panel",
+    "deleteAccount": "Delete account",
+    "deleteAccountConfirm": "This will permanently delete your account and all your data. This cannot be undone.",
+    "deleteAccountAction": "Delete permanently",
+    "cancel": "Cancel",
+    "deleting": "Deleting..."
   },
   "landing": {
     "badge": "Flight price tracker",
@@ -87,7 +92,10 @@
     "inactive": "Inactive",
     "deleting": "Deleting...",
     "delete": "Delete",
-    "deleteConfirm": "Delete this alert? All its deals will also be deleted.",
+    "edit": "Edit",
+    "deleteConfirm": "All deals will also be deleted.",
+    "cancel": "Cancel",
+    "confirmDelete": "Confirm",
     "empty": {
       "title": "Create your first travel alert",
       "subtitle": "We will set up automatic searches and notify you when we detect a good deal",
@@ -119,6 +127,9 @@
       "freq360": "Every 6 hours",
       "freq720": "Every 12 hours",
       "freq1440": "Every 24 hours",
+      "editTitle": "Edit alert",
+      "save": "Save changes",
+      "saving": "Saving...",
       "success": "Alert created successfully",
       "error": "Error creating alert",
       "searching": "Searching for deals...",
@@ -135,6 +146,8 @@
   "deals": {
     "title": "Deals found",
     "refresh": "Refresh",
+    "loadMore": "Load {count} more",
+    "loadingMore": "Loading...",
     "empty": {
       "title": "No deals yet",
       "subtitle": "The system will search for deals automatically based on the configured frequency"
@@ -143,7 +156,8 @@
     "score": {
       "excellent": "Excellent",
       "good": "Good deal",
-      "average": "Average"
+      "average": "Average",
+      "poor": "Expensive"
     },
     "card": {
       "flightFrom": "Flight from",

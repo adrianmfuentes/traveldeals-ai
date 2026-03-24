@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AlertTriangle, Loader2, Plus, X } from "lucide-react";
+import { useRouter } from "next/navigation";
 import AlertCard from "./AlertCard";
 import AlertForm from "./AlertForm";
 import { useTranslations } from "next-intl";
@@ -28,10 +29,12 @@ const SS_KEY = "searchState";
 export default function AlertsSection() {
   const t = useTranslations("alerts");
   const tf = useTranslations("alerts.form");
+  const router = useRouter();
   const [alerts, setAlerts] = useState<SearchAlert[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const [editingAlert, setEditingAlert] = useState<SearchAlert | null>(null);
   const [searchState, setSearchState] = useState<SearchState | null>(null);
 
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -77,6 +80,29 @@ export default function AlertsSection() {
   useEffect(() => {
     fetchAlerts();
   }, []);
+
+  // Auto-refresh alert cards every 60s to pick up updated deal counts
+  useEffect(() => {
+    const id = setInterval(fetchAlerts, 60_000);
+    return () => clearInterval(id);
+  }, []);
+
+  // When a search completes or an alert is deleted, refresh server-rendered stats
+  useEffect(() => {
+    function onDealsRefresh() {
+      fetchAlerts();
+      router.refresh();
+    }
+    function onAlertDeleted() {
+      router.refresh();
+    }
+    window.addEventListener("deals:refresh", onDealsRefresh);
+    window.addEventListener("alert:deleted", onAlertDeleted);
+    return () => {
+      window.removeEventListener("deals:refresh", onDealsRefresh);
+      window.removeEventListener("alert:deleted", onAlertDeleted);
+    };
+  }, [router]);
 
   // Poll the job result only while status === "searching"
   useEffect(() => {
@@ -127,10 +153,19 @@ export default function AlertsSection() {
     };
   }, [searchState?.alertId, searchState?.status]);
 
-  function handleAlertCreated(alertId: string) {
+  function handleAlertCreated(alertId: string, enqueued: boolean) {
+    const wasEditing = editingAlert !== null;
     setShowForm(false);
+    setEditingAlert(null);
     fetchAlerts();
-    saveState({ alertId, status: "searching" });
+    if (enqueued) {
+      if (wasEditing) {
+        window.dispatchEvent(
+          new CustomEvent("alert:edited", { detail: { alertId } })
+        );
+      }
+      saveState({ alertId, status: "searching" });
+    }
   }
 
   return (
@@ -250,7 +285,12 @@ export default function AlertsSection() {
       {!loading && !error && alerts.length > 0 && (
         <div className="space-y-3">
           {alerts.map((alert) => (
-            <AlertCard key={alert.id} alert={alert} onUpdate={fetchAlerts} />
+            <AlertCard
+              key={alert.id}
+              alert={alert}
+              onUpdate={fetchAlerts}
+              onEdit={() => setEditingAlert(alert)}
+            />
           ))}
         </div>
       )}
@@ -259,6 +299,14 @@ export default function AlertsSection() {
         <AlertForm
           onSuccess={handleAlertCreated}
           onClose={() => setShowForm(false)}
+        />
+      )}
+
+      {editingAlert && (
+        <AlertForm
+          initialData={editingAlert}
+          onSuccess={handleAlertCreated}
+          onClose={() => setEditingAlert(null)}
         />
       )}
     </div>
