@@ -1,6 +1,9 @@
 import type { FlightOffer } from "../../src/types";
 import { CircuitBreaker } from "../lib/circuit-breaker";
 import { resolveToAirportCodes } from "../lib/city-airports";
+import { createLogger, toLogError } from "@platform/core/lib/logger";
+
+const log = createLogger("FlightProvider");
 
 // ─── Interfaz común para todos los proveedores ──────
 
@@ -12,6 +15,8 @@ interface SearchParams {
   passengers: number;
   maxBudget?: number;
   currency: string;
+  tripDurationMin?: number;
+  tripDurationMax?: number;
 }
 
 interface FlightProvider {
@@ -43,11 +48,11 @@ const serpApiProvider: FlightProvider = {
       const allOffers: FlightOffer[] = [];
 
       if (originCodes.length === 0) {
-        console.error(`[FlightProvider] No se pudo resolver el origen: "${params.origin}"`);
+        log.warn("Could not resolve origin", { origin: params.origin });
         return [];
       }
       if (destinations.length === 0) {
-        console.error(`[FlightProvider] No se pudo resolver ningún destino: ${JSON.stringify(params.destinations)}`);
+        log.warn("Could not resolve any destination", { destinations: params.destinations });
         return [];
       }
 
@@ -58,7 +63,9 @@ const serpApiProvider: FlightProvider = {
           departure_id: originCode,
           arrival_id: dest,
           outbound_date: params.dateFrom.toISOString().split("T")[0],
-          return_date: params.dateTo.toISOString().split("T")[0],
+          return_date: new Date(
+            params.dateFrom.getTime() + (params.tripDurationMin ?? 7) * 86_400_000
+          ).toISOString().split("T")[0],
           adults: String(params.passengers),
           currency: params.currency,
           api_key: process.env.SERPAPI_API_KEY!,
@@ -67,18 +74,22 @@ const serpApiProvider: FlightProvider = {
         const res = await fetch(`https://serpapi.com/search?${searchParams}`);
         if (!res.ok) {
           const errText = await res.text();
-          console.error(`[SerpApi] HTTP ${res.status} para ${originCode}→${dest}:`, errText);
+          log.error("SerpApi HTTP error", { route: `${originCode}→${dest}`, status: res.status, body: errText.slice(0, 200) });
           continue;
         }
 
         const data = await res.json();
 
         if (data.error) {
-          console.error(`[SerpApi] Error de API para ${originCode}→${dest}:`, data.error);
+          log.error("SerpApi API error", { route: `${originCode}→${dest}`, error: data.error });
           continue;
         }
 
-        console.log(`[SerpApi] ${originCode}→${dest}: best_flights=${data.best_flights?.length ?? 0}, other_flights=${data.other_flights?.length ?? 0}`);
+        log.debug("SerpApi results", {
+          route: `${originCode}→${dest}`,
+          best: data.best_flights?.length ?? 0,
+          other: data.other_flights?.length ?? 0,
+        });
 
         for (const flight of data.best_flights ?? data.other_flights ?? []) {
           const leg = flight.flights?.[0];
@@ -117,15 +128,11 @@ export async function searchFlights(params: SearchParams): Promise<FlightOffer[]
   );
 
   if (activeProviders.length === 0) {
-    console.error(
-      "[FlightProvider] No hay proveedores configurados. Revisa las variables de entorno."
-    );
+    log.error("No flight providers available, check environment variables");
     return [];
   }
 
-  console.log(
-    `[FlightProvider] Usando proveedores: ${activeProviders.map((p) => p.name).join(", ")}`
-  );
+  log.debug("Using providers", { providers: activeProviders.map((p) => p.name) });
 
   const results = await Promise.allSettled(activeProviders.map((p) => p.search(params)));
 
@@ -134,15 +141,10 @@ export async function searchFlights(params: SearchParams): Promise<FlightOffer[]
   for (let i = 0; i < results.length; i++) {
     const result = results[i];
     if (result.status === "fulfilled") {
-      console.log(
-        `[FlightProvider] ${activeProviders[i].name}: ${result.value.length} ofertas`
-      );
+      log.info("Provider results", { provider: activeProviders[i].name, count: result.value.length });
       allOffers.push(...result.value);
     } else {
-      console.error(
-        `[FlightProvider] ${activeProviders[i].name} falló:`,
-        result.reason
-      );
+      log.error("Provider failed", { provider: activeProviders[i].name, ...toLogError(result.reason) });
     }
   }
 

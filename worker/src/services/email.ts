@@ -1,4 +1,7 @@
 import { sendEmail } from "@platform/core/lib/email";
+import { createLogger } from "@platform/core/lib/logger";
+
+const log = createLogger("Email");
 
 interface DealNotificationParams {
   userEmail: string;
@@ -118,5 +121,5 @@ TravelDeals AI — Los precios pueden variar.
     text,
   });
 
-  console.log(`[Email] Notification sent to ${userEmail} for ${deal.origin}→${deal.destination}`);
+  log.info("Deal notification sent", { route: `${deal.origin}→${deal.destination}`, score: deal.aiScore });
 }

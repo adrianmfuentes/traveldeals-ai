@@ -2,21 +2,25 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAppSession } from "@/lib/get-session";
 import { prisma } from "@/lib/prisma";
 import { rateLimit, getIdentifier } from "@/lib/rate-limit";
+import { createLogger, toLogError } from "@/lib/logger";
+import { searchAlertsQueue } from "@/lib/queue";
 import { z } from "zod";
+
+const log = createLogger("API:alerts");
 
 const VALID_CURRENCIES = ["EUR", "USD", "GBP", "CHF", "JPY", "CAD", "AUD"] as const;
 
 const createAlertSchema = z.object({
   origin: z.string().min(2).max(100),
-  destinations: z.array(z.string().min(2).max(100)).max(10).default([]),
+  destinations: z.array(z.string().min(2).max(100)).min(1).max(10),
   passengers: z.number().int().min(1).max(10).default(1),
   dateFrom: z.string().datetime(),
   dateTo: z.string().datetime(),
-  tripDurationMin: z.number().int().min(1).max(365).optional(),
-  tripDurationMax: z.number().int().min(1).max(365).optional(),
+  tripDurationMin: z.number().int().min(1).max(365),
+  tripDurationMax: z.number().int().min(1).max(365),
   maxBudget: z.number().positive().max(1_000_000).optional(),
   currency: z.enum(VALID_CURRENCIES).default("EUR"),
-  frequencyMinutes: z.number().int().min(60).max(10080).default(720), // max 1 week
+  frequencyMinutes: z.number().int().min(0).max(10080).default(720), // 0 = one-time search
 });
 
 // GET /api/alerts — Listar alertas del usuario
@@ -47,7 +51,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ alerts });
   } catch (error) {
-    console.error("Error fetching alerts:", error);
+    log.error("Failed to fetch alerts", toLogError(error));
     return NextResponse.json(
       { error: "Error al obtener las alertas" },
       { status: 500 }
@@ -88,6 +92,21 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    // Enqueue immediately — don't wait for the scheduler's next tick
+    try {
+      await searchAlertsQueue.add(
+        `alert-${alert.id}`,
+        { alertId: alert.id },
+        {
+          jobId: `alert-${alert.id}-${Date.now()}`,
+          attempts: 3,
+          backoff: { type: "exponential", delay: 5_000 },
+        }
+      );
+    } catch (queueErr) {
+      log.warn("Failed to enqueue alert immediately", toLogError(queueErr));
+    }
+
     return NextResponse.json({ alert }, { status: 201 });
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -96,7 +115,7 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    console.error("Error creating alert:", error);
+    log.error("Failed to create alert", toLogError(error));
     return NextResponse.json(
       { error: "Error al crear la alerta" },
       { status: 500 }

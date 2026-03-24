@@ -1,5 +1,8 @@
 import Groq from "groq-sdk";
 import type { FlightOffer, HotelOffer, AiDealAnalysis } from "../../src/types";
+import { createLogger } from "@platform/core/lib/logger";
+
+const log = createLogger("AI");
 
 const client = new Groq({
   apiKey: process.env.GROQ_API_KEY,
@@ -130,7 +133,7 @@ Genera el análisis completo en JSON.`;
 
     return analysis;
   } catch (err) {
-    console.error("[AI] Error parseando respuesta:", cleaned.substring(0, 200));
+    log.error("Failed to parse AI response", { preview: cleaned.substring(0, 200) });
     throw new Error(`Error parseando respuesta de IA: ${(err as Error).message}`);
   }
 }

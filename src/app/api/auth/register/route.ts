@@ -3,6 +3,9 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { rateLimit } from "@/lib/rate-limit";
+import { createLogger, toLogError } from "@/lib/logger";
+
+const log = createLogger("API:auth");
 
 const registerSchema = z.object({
   email: z.string().email("Email inválido").max(254),
@@ -69,7 +72,7 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    console.error("Error en registro:", error);
+    log.error("Registration failed", toLogError(error));
     return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 });
   }
 }

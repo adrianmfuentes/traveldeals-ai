@@ -1,5 +1,8 @@
 // Maps normalized city names → IATA airport codes
 // Also used to resolve airport code → city name for hotel searches
+import { createLogger } from "@platform/core/lib/logger";
+
+const log = createLogger("CityAirports");
 
 interface CityEntry {
   cityName: string; // Display name
@@ -224,7 +227,7 @@ export function resolveToAirportCodes(input: string): string[] {
     }
   }
 
-  console.warn(`[CityAirports] No se encontraron aeropuertos para: "${input}" — se omite este destino`);
+  log.warn("No airports found for input, skipping", { input });
   return []; // unknown input: skip to avoid API errors
 }
 

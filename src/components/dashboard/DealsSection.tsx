@@ -59,6 +59,12 @@ export default function DealsSection({ alertId }: DealsSectionProps) {
     fetchDeals();
   }, [alertId]);
 
+  useEffect(() => {
+    function onRefresh() { fetchDeals(); }
+    window.addEventListener("deals:refresh", onRefresh);
+    return () => window.removeEventListener("deals:refresh", onRefresh);
+  }, [alertId]);
+
   return (
     <div>
       <div className="flex items-center justify-between mb-4">

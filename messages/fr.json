@@ -7,24 +7,36 @@
     "panel": "Tableau de bord"
   },
   "landing": {
-    "badge": "Surveillance de vols par intelligence artificielle",
-    "headline1": "Voyagez plus pour moins,",
-    "headline2": "sans effort",
-    "description": "Configurez des alertes de recherche et notre système surveille les vols et les hôtels 24h/24 7j/7. Quand il détecte une offre exceptionnelle, l'IA l'analyse et génère un itinéraire complet avec un budget détaillé.",
+    "badge": "Traqueur de prix de vols",
+    "headline1": "Arrêtez de surpayer",
+    "headline2": "vos billets d'avion.",
+    "description": "Créez une alerte une fois. Nous vérifions les prix sur vos routes chaque heure et vous envoyons un résumé complet — vol, hôtel et itinéraire — dès qu'une bonne offre apparaît.",
     "ctaStart": "Commencer gratuitement",
-    "ctaAccess": "Accéder au panneau",
+    "ctaAccess": "Aller au tableau de bord",
+    "how": "Comment ça marche",
+    "step1title": "Créez votre alerte",
+    "step1desc": "Choisissez l'origine, les destinations et les dates. Ça prend 30 secondes.",
+    "step2title": "On cherche pour vous",
+    "step2desc": "Nous vérifions Google Flights chaque heure. Pas d'onglet ouvert, pas de recherche manuelle.",
+    "step3title": "Recevez l'offre",
+    "step3desc": "Quand les prix baissent, vous recevez un email avec le vol, un hôtel et un budget complet pour le séjour.",
+    "sampleLabel": "Exemple d'offre détectée",
+    "sampleRoute": "Madrid → Londres",
+    "samplePrice": "89 €",
+    "sampleAirline": "Vueling · 2h 20min · Direct",
+    "sampleScore": "Score 84/100 · IA : excellent rapport qualité-prix pour un long week-end",
     "features": {
       "alerts": {
-        "title": "Alertes automatiques",
-        "desc": "Définissez l'origine, les destinations et le budget. Le système recherche des vols et des hôtels automatiquement selon la fréquence choisie."
+        "title": "Configurez et oubliez",
+        "desc": "Définissez votre itinéraire et vos dates une fois. Le système s'occupe de tout à la fréquence que vous choisissez."
       },
       "sources": {
-        "title": "Sources multiples",
-        "desc": "Nous recherchons sur Google Flights et Google Hotels simultanément pour vous offrir les meilleurs prix disponibles."
+        "title": "Prix réels de Google Flights",
+        "desc": "Nous récupérons des données en temps réel de Google Flights et Hotels — les mêmes sources que vous consulteriez manuellement, mais automatisées."
       },
       "ai": {
-        "title": "Analyse intelligente",
-        "desc": "Chaque offre est évaluée automatiquement, avec une estimation du budget total et un itinéraire jour par jour généré par IA."
+        "title": "Des offres qui ont du sens",
+        "desc": "Chaque résultat est accompagné d'un score IA, d'un détail du budget et d'un itinéraire jour par jour pour décider en quelques secondes."
       }
     }
   },
@@ -102,12 +114,22 @@
       "cancel": "Annuler",
       "create": "Créer l'alerte",
       "creating": "Création...",
+      "freq0": "Recherche unique",
       "freq60": "Chaque heure",
       "freq360": "Toutes les 6 heures",
       "freq720": "Toutes les 12 heures",
       "freq1440": "Toutes les 24 heures",
       "success": "Alerte créée avec succès",
-      "error": "Erreur lors de la création de l'alerte"
+      "error": "Erreur lors de la création de l'alerte",
+      "searching": "Recherche d'offres en cours...",
+      "searchingHint": "Cela prend généralement moins d'une minute. Les résultats s'afficheront automatiquement.",
+      "noFlights": "Aucun vol trouvé pour cette recherche",
+      "noFlightsHint": "Essayez d'ajuster votre budget, vos dates ou votre destination.",
+      "searchError": "La recherche a rencontré une erreur",
+      "searchErrorHint": "L'alerte réessaiera automatiquement lors de la prochaine exécution planifiée.",
+      "searchTimeout": "La recherche prend plus de temps que prévu",
+      "searchTimeoutHint": "Les résultats apparaîtront ici automatiquement une fois prêts.",
+      "dismiss": "Fermer"
     }
   },
   "deals": {

@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAppSession } from "@/lib/get-session";
 import { prisma } from "@/lib/prisma";
 import { rateLimit, getIdentifier } from "@/lib/rate-limit";
+import { createLogger, toLogError } from "@/lib/logger";
+
+const log = createLogger("API:deals");
 
 // GET /api/deals — Listar ofertas del usuario
 export async function GET(req: NextRequest) {
@@ -50,7 +53,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ deals });
   } catch (error) {
-    console.error("Error fetching deals:", error);
+    log.error("Failed to fetch deals", toLogError(error));
     return NextResponse.json(
       { error: "Error al obtener las ofertas" },
       { status: 500 }

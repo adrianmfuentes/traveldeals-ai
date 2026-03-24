@@ -7,24 +7,36 @@
     "panel": "Panel"
   },
   "landing": {
-    "badge": "Monitorización de vuelos con inteligencia artificial",
-    "headline1": "Viaja más por menos,",
-    "headline2": "sin esfuerzo",
-    "description": "Configura alertas de búsqueda y nuestro sistema monitoriza vuelos y hoteles 24/7. Cuando detecta una oferta destacada, la IA la analiza y genera un itinerario completo con presupuesto detallado.",
+    "badge": "Rastreador de precios de vuelos",
+    "headline1": "Deja de pagar",
+    "headline2": "de más por volar.",
+    "description": "Crea una alerta una vez. Revisamos los precios en tus rutas cada hora y te enviamos un desglose completo — vuelo, hotel e itinerario — en cuanto aparece una buena oferta.",
     "ctaStart": "Empezar gratis",
-    "ctaAccess": "Acceder al panel",
+    "ctaAccess": "Ir al panel",
+    "how": "Cómo funciona",
+    "step1title": "Configura tu alerta",
+    "step1desc": "Elige origen, destinos y fechas de viaje. Tarda 30 segundos.",
+    "step2title": "Nosotros buscamos",
+    "step2desc": "Revisamos Google Flights cada hora. Sin pestañas abiertas ni búsquedas manuales.",
+    "step3title": "Recibe la oferta",
+    "step3desc": "Cuando los precios bajan, recibes un correo con el vuelo, opción de hotel y presupuesto completo del viaje.",
+    "sampleLabel": "Ejemplo de oferta detectada",
+    "sampleRoute": "Madrid → Londres",
+    "samplePrice": "€89",
+    "sampleAirline": "Vueling · 2h 20m · Directo",
+    "sampleScore": "Puntuación 84/100 · IA: excelente relación calidad-precio para un fin de semana largo",
     "features": {
       "alerts": {
-        "title": "Alertas automáticas",
-        "desc": "Define origen, destinos y presupuesto. El sistema busca vuelos y hoteles de forma automática según la frecuencia que elijas."
+        "title": "Configúralo y olvídate",
+        "desc": "Define tu ruta y fechas una vez. El sistema se encarga de buscar a la frecuencia que elijas."
       },
       "sources": {
-        "title": "Múltiples fuentes",
-        "desc": "Buscamos en Google Flights y Google Hotels simultáneamente para ofrecerte los mejores precios disponibles."
+        "title": "Precios reales de Google Flights",
+        "desc": "Obtenemos datos en tiempo real de Google Flights y Hotels — las mismas fuentes que consultarías manualmente, pero automatizadas."
       },
       "ai": {
-        "title": "Análisis inteligente",
-        "desc": "Cada oferta es evaluada automáticamente, con estimación del presupuesto total e itinerario día a día generado por IA."
+        "title": "Ofertas que tienen sentido",
+        "desc": "Cada resultado lleva una puntuación IA, un desglose de presupuesto e itinerario día a día para que decidas en segundos."
       }
     }
   },
@@ -102,12 +114,22 @@
       "cancel": "Cancelar",
       "create": "Crear alerta",
       "creating": "Creando...",
+      "freq0": "Búsqueda única",
       "freq60": "Cada hora",
       "freq360": "Cada 6 horas",
       "freq720": "Cada 12 horas",
       "freq1440": "Cada 24 horas",
       "success": "Alerta creada correctamente",
-      "error": "Error al crear la alerta"
+      "error": "Error al crear la alerta",
+      "searching": "Buscando ofertas...",
+      "searchingHint": "Esto suele tardar menos de un minuto. Los resultados aparecerán automáticamente.",
+      "noFlights": "No se encontraron vuelos para esta búsqueda",
+      "noFlightsHint": "Prueba a ajustar el presupuesto, las fechas o el destino.",
+      "searchError": "La búsqueda encontró un error",
+      "searchErrorHint": "La alerta lo reintentará automáticamente en la próxima ejecución programada.",
+      "searchTimeout": "La búsqueda está tardando más de lo esperado",
+      "searchTimeoutHint": "Los resultados aparecerán aquí automáticamente cuando estén listos.",
+      "dismiss": "Cerrar"
     }
   },
   "deals": {

@@ -5,7 +5,7 @@ import { X } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 interface AlertFormProps {
-  onSuccess: () => void;
+  onSuccess: (alertId: string) => void;
   onClose: () => void;
 }
 
@@ -28,26 +28,36 @@ export default function AlertForm({ onSuccess, onClose }: AlertFormProps) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+
+    const destinationsArray = destinations
+      .split(",")
+      .map((d) => d.trim())
+      .filter((d) => d.length >= 2);
+
+    if (destinationsArray.length === 0) {
+      setError("Enter at least one destination.");
+      return;
+    }
+    if (tripDurationMin === "" || tripDurationMax === "") {
+      setError("Trip duration is required.");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const destinationsArray = destinations
-        .split(",")
-        .map((d) => d.trim())
-        .filter((d) => d.length >= 2);
-
       const body: Record<string, unknown> = {
         origin: origin.trim(),
         destinations: destinationsArray,
         passengers,
         dateFrom: new Date(dateFrom).toISOString(),
         dateTo: new Date(dateTo).toISOString(),
+        tripDurationMin,
+        tripDurationMax,
         currency,
         frequencyMinutes,
       };
 
-      if (tripDurationMin !== "") body.tripDurationMin = tripDurationMin;
-      if (tripDurationMax !== "") body.tripDurationMax = tripDurationMax;
       if (maxBudget !== "") body.maxBudget = maxBudget;
 
       const res = await fetch("/api/alerts", {
@@ -63,7 +73,7 @@ export default function AlertForm({ onSuccess, onClose }: AlertFormProps) {
         return;
       }
 
-      onSuccess();
+      onSuccess(data.alert.id);
     } catch {
       setError(t("error"));
     } finally {
@@ -110,7 +120,8 @@ export default function AlertForm({ onSuccess, onClose }: AlertFormProps) {
                 type="text"
                 value={destinations}
                 onChange={(e) => setDestinations(e.target.value)}
-                placeholder={t("destinationsPlaceholder")}
+                required
+                placeholder="London, Paris..."
                 className={inputClass}
               />
             </div>
@@ -162,6 +173,7 @@ export default function AlertForm({ onSuccess, onClose }: AlertFormProps) {
                   setTripDurationMin(e.target.value ? parseInt(e.target.value) : "")
                 }
                 min={1}
+                required
                 placeholder="3"
                 className={inputClass}
               />
@@ -175,6 +187,7 @@ export default function AlertForm({ onSuccess, onClose }: AlertFormProps) {
                   setTripDurationMax(e.target.value ? parseInt(e.target.value) : "")
                 }
                 min={1}
+                required
                 placeholder="10"
                 className={inputClass}
               />
@@ -183,7 +196,10 @@ export default function AlertForm({ onSuccess, onClose }: AlertFormProps) {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className={labelClass}>{t("budget")}</label>
+              <label className={labelClass}>
+                {t("budget")}{" "}
+                <span className="text-slate-400 font-normal text-xs">(optional)</span>
+              </label>
               <input
                 type="number"
                 value={maxBudget}
@@ -216,6 +232,7 @@ export default function AlertForm({ onSuccess, onClose }: AlertFormProps) {
               onChange={(e) => setFrequencyMinutes(parseInt(e.target.value))}
               className={inputClass}
             >
+              <option value={0}>{t("freq0")}</option>
               <option value={60}>{t("freq60")}</option>
               <option value={360}>{t("freq360")}</option>
               <option value={720}>{t("freq720")}</option>

@@ -1,5 +1,8 @@
 import type { HotelOffer } from "../../src/types";
 import { airportToCity } from "../lib/city-airports";
+import { createLogger, toLogError } from "@platform/core/lib/logger";
+
+const log = createLogger("HotelProvider");
 
 export interface HotelSearchParams {
   destination: string; // Airport code or city name
@@ -38,19 +41,19 @@ const serpApiHotelProvider = {
 
     if (!res.ok) {
       const errText = await res.text();
-      console.error(`[SerpApi Hotels] HTTP ${res.status} para ${cityName}:`, errText);
+      log.error("SerpApi Hotels HTTP error", { city: cityName, status: res.status, body: errText.slice(0, 200) });
       return [];
     }
 
     const data = await res.json();
 
     if (data.error) {
-      console.error(`[SerpApi Hotels] Error de API para ${cityName}:`, data.error);
+      log.error("SerpApi Hotels API error", { city: cityName, error: data.error });
       return [];
     }
 
     const properties: any[] = data.properties ?? [];
-    console.log(`[SerpApi Hotels] ${cityName}: ${properties.length} hoteles encontrados`);
+    log.debug("Hotel results", { city: cityName, count: properties.length });
 
     const offers: HotelOffer[] = properties
       .filter((p) => p.rate_per_night?.lowest != null)
@@ -73,14 +76,14 @@ const serpApiHotelProvider = {
 
 export async function searchHotels(params: HotelSearchParams): Promise<HotelOffer[]> {
   if (!serpApiHotelProvider.isAvailable()) {
-    console.log("[HotelProvider] No hay proveedores de hotel configurados. Configura SERPAPI_API_KEY.");
+    log.warn("No hotel providers available, check SERPAPI_API_KEY");
     return [];
   }
 
   try {
     return await serpApiHotelProvider.search(params);
   } catch (err) {
-    console.error("[HotelProvider] Error buscando hoteles:", err);
+    log.error("Hotel search failed", toLogError(err));
     return [];
   }
 }

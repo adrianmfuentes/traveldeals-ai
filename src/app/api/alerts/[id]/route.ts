@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAppSession } from "@/lib/get-session";
 import { prisma } from "@/lib/prisma";
 import { rateLimit, getIdentifier } from "@/lib/rate-limit";
+import { createLogger, toLogError } from "@/lib/logger";
 import { z } from "zod";
+
+const log = createLogger("API:alerts");
 
 const patchAlertSchema = z.object({
   isActive: z.boolean().optional(),
@@ -58,7 +61,7 @@ export async function PATCH(
         { status: 400 }
       );
     }
-    console.error("Error updating alert:", error);
+    log.error("Failed to update alert", toLogError(error));
     return NextResponse.json({ error: "Error al actualizar la alerta" }, { status: 500 });
   }
 }
@@ -100,7 +103,7 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error deleting alert:", error);
+    log.error("Failed to delete alert", toLogError(error));
     return NextResponse.json({ error: "Error al eliminar la alerta" }, { status: 500 });
   }
 }
