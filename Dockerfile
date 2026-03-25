@@ -36,21 +36,21 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 ENV NODE_OPTIONS="--max-old-space-size=2048"
 
-# Build requires dummy values for env validation at build time
-# Real values are injected at runtime via docker-compose / secrets
-ARG NEXTAUTH_SECRET=build-time-placeholder-32-characters
+# Non-sensitive build-time values
 ARG NEXTAUTH_URL=http://localhost:3000
 ARG DATABASE_URL=postgresql://placeholder:placeholder@placeholder/placeholder
-ARG GROQ_API_KEY=build-placeholder
-ARG SERPAPI_API_KEY=build-placeholder
-
-ENV NEXTAUTH_SECRET=$NEXTAUTH_SECRET
 ENV NEXTAUTH_URL=$NEXTAUTH_URL
 ENV DATABASE_URL=$DATABASE_URL
-ENV GROQ_API_KEY=$GROQ_API_KEY
-ENV SERPAPI_API_KEY=$SERPAPI_API_KEY
 
-RUN npm run build
+# Secrets are mounted read-only during the build step only and are never
+# written into any image layer. They satisfy env validation at build time.
+RUN --mount=type=secret,id=nextauth_secret \
+    --mount=type=secret,id=groq_api_key \
+    --mount=type=secret,id=serpapi_api_key \
+    NEXTAUTH_SECRET=$(cat /run/secrets/nextauth_secret) \
+    GROQ_API_KEY=$(cat /run/secrets/groq_api_key) \
+    SERPAPI_API_KEY=$(cat /run/secrets/serpapi_api_key 2>/dev/null || echo "optional") \
+    npm run build
 RUN mkdir -p /app/public
 
 # ── Stage 3: runner ───────────────────────────────────────────────────────────
