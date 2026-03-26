@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AlertTriangle, Loader2, Plus, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import AlertCard from "./AlertCard";
@@ -62,7 +62,7 @@ export default function AlertsSection() {
     saveState(null);
   }
 
-  async function fetchAlerts() {
+  const fetchAlerts = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
@@ -75,17 +75,17 @@ export default function AlertsSection() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [t]);
 
   useEffect(() => {
     fetchAlerts();
-  }, []);
+  }, [fetchAlerts]);
 
   // Auto-refresh alert cards every 60s to pick up updated deal counts
   useEffect(() => {
     const id = setInterval(fetchAlerts, 60_000);
     return () => clearInterval(id);
-  }, []);
+  }, [fetchAlerts]);
 
   // When a search completes or an alert is deleted, refresh server-rendered stats
   useEffect(() => {
@@ -102,7 +102,7 @@ export default function AlertsSection() {
       window.removeEventListener("deals:refresh", onDealsRefresh);
       window.removeEventListener("alert:deleted", onAlertDeleted);
     };
-  }, [router]);
+  }, [fetchAlerts, router]);
 
   // Poll the job result only while status === "searching"
   useEffect(() => {

@@ -21,9 +21,22 @@
       "@platform/core/worker": ["../platform-core/src/worker/index.ts"],
       "@platform/core/ui/*": ["../platform-core/src/ui/*.tsx"],
       "@platform/core/lib/*": ["../platform-core/src/lib/*.ts"],
-      "@platform/core/i18n/*": ["../platform-core/src/i18n/*.ts"]
+      "@platform/core/i18n/*": ["../platform-core/src/i18n/*.ts"],
+      "next-auth": ["./node_modules/next-auth"],
+      "next-auth/*": ["./node_modules/next-auth/*"],
+      "next-intl": ["./node_modules/next-intl"],
+      "next-intl/*": ["./node_modules/next-intl/*"],
+      "next-themes": ["./node_modules/next-themes"],
+      "lucide-react": ["./node_modules/lucide-react"],
+      "react": ["./node_modules/@types/react"],
+      "react/*": ["./node_modules/@types/react/*"],
+      "bcryptjs": ["./node_modules/bcryptjs"],
+      "bullmq": ["./node_modules/bullmq"],
+      "ioredis": ["./node_modules/ioredis"],
+      "resend": ["./node_modules/resend"],
+      "zod": ["./node_modules/zod"]
     }
   },
-  "include": ["next-env.d.ts", "src/**/*.ts", "src/**/*.tsx", ".next/types/**/*.ts"],
+  "include": ["next-env.d.ts", "src/**/*.ts", "src/**/*.tsx", ".next/types/**/*.ts", "../platform-core/src/**/*.ts", "../platform-core/src/**/*.tsx"],
   "exclude": ["node_modules", "worker", "tests"]
 }
