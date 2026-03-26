@@ -8,7 +8,7 @@ services:
   # ── DB migrations (runs once on startup) ──────────────────────────────────
   migrate:
     image: ghcr.io/adrianmfuentes/traveldeals-ai/app:latest
-    command: npx prisma migrate deploy
+    command: npx prisma@7 migrate deploy
     environment:
       DATABASE_URL: ${DATABASE_URL}
       DIRECT_URL:   ${DIRECT_URL}
