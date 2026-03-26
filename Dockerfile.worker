@@ -4,6 +4,7 @@
 # traveldeals-ai/ and platform-core/ as siblings.
 # =============================================================================
 
+# ── Stage 1: all deps (devDeps required for prisma generate) ──────────────────
 FROM node:22-alpine AS deps
 RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
@@ -14,6 +15,16 @@ COPY traveldeals-ai/prisma ./prisma/
 
 RUN npm ci --ignore-scripts
 RUN npx prisma generate
+
+# ── Stage 2: production-only deps ─────────────────────────────────────────────
+FROM node:22-alpine AS prod-deps
+RUN apk add --no-cache libc6-compat openssl
+WORKDIR /app
+
+COPY platform-core/ /platform-core/
+COPY traveldeals-ai/package.json traveldeals-ai/package-lock.json* ./
+
+RUN npm ci --ignore-scripts --omit=dev
 
 # ── Runner ────────────────────────────────────────────────────────────────────
 FROM node:22-alpine AS runner
@@ -26,8 +37,8 @@ ENV NODE_ENV=production
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser  --system --uid 1001 worker
 
-COPY --from=deps /platform-core/ /platform-core/
-COPY --from=deps /app/node_modules ./node_modules
+COPY --from=prod-deps /platform-core/ /platform-core/
+COPY --from=prod-deps /app/node_modules ./node_modules
 COPY --from=deps /app/node_modules/.prisma ./node_modules/.prisma
 COPY traveldeals-ai/ .
 
