@@ -43,6 +43,7 @@ jobs:
         with:
           context: .
           file: traveldeals-ai/Dockerfile
+          target: runner
           push: true
           tags: ghcr.io/${{ github.repository }}/app:latest
           cache-from: type=gha,scope=app
