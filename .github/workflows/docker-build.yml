@@ -52,6 +52,50 @@ jobs:
             groq_api_key=${{ secrets.GROQ_API_KEY }}
             serpapi_api_key=${{ secrets.SERPAPI_API_KEY }}
 
+  build-migrate:
+    runs-on: ubuntu-24.04-arm
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout traveldeals-ai
+        uses: actions/checkout@v4
+        with:
+          path: traveldeals-ai
+
+      - name: Checkout platform-core
+        uses: actions/checkout@v4
+        with:
+          repository: adrianmfuentes/platform-core
+          path: platform-core
+          token: ${{ secrets.PLATFORM_CORE_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & push migrate image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: traveldeals-ai/Dockerfile
+          target: migrate
+          push: true
+          tags: ghcr.io/${{ github.repository }}/migrate:latest
+          cache-from: type=gha,scope=app
+          cache-to: type=gha,scope=app,mode=max
+          secrets: |
+            nextauth_secret=${{ secrets.NEXTAUTH_SECRET }}
+            groq_api_key=${{ secrets.GROQ_API_KEY }}
+            serpapi_api_key=${{ secrets.SERPAPI_API_KEY }}
+
   build-worker:
     runs-on: ubuntu-24.04-arm
     permissions:
