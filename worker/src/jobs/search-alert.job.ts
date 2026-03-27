@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
 import IORedis from "ioredis";
 import { createLogger, toLogError } from "@platform/core/lib/logger";
 import { searchFlights } from "../providers/flight-provider";
@@ -9,7 +10,7 @@ import { addDays, format } from "date-fns";
 
 const log = createLogger("Job");
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
 
 type JobResult = { status: "done" | "no_flights" | "error"; dealsCount?: number };
 
@@ -179,5 +180,13 @@ export async function processSearchAlert(alertId: string, redis?: IORedis): Prom
     const doneCount = results.filter((r) => r.status === "fulfilled").length;
     await writeResult(redis, alertId, { status: "done", dealsCount: doneCount });
     log.info("Alert run complete", { alertId, dealsReady: doneCount, total: topFlights.length });
+  }
+
+  // Deactivate one-time alerts after processing completes
+  if (alert.frequencyMinutes === 0) {
+    await prisma.searchAlert.update({
+      where: { id: alert.id },
+      data: { isActive: false },
+    });
   }
 }
