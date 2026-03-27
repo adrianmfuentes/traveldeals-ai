@@ -1,9 +1,18 @@
 # =============================================================================
-# TravelDeals AI — Production (NeonDB + Upstash Redis, no local infra)
+# TravelDeals AI — Production (NeonDB + local Redis for BullMQ)
 # Usage: docker compose -f docker-compose.prod.yml --env-file .env up -d
 # =============================================================================
 
 services:
+
+  # ── Local Redis (BullMQ queue — avoids Upstash request-limit issues) ────────
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+    networks:
+      - nginx-proxy-manager_default
 
   # ── DB migrations (runs once on startup) ──────────────────────────────────
   migrate:
@@ -21,7 +30,7 @@ services:
       NODE_ENV: production
       DATABASE_URL:        ${DATABASE_URL}
       DIRECT_URL:          ${DIRECT_URL}
-      REDIS_URL:           ${REDIS_URL}
+      REDIS_URL:           redis://redis:6379
       NEXTAUTH_SECRET:     ${NEXTAUTH_SECRET}
       NEXTAUTH_URL:        ${NEXTAUTH_URL}
       GROQ_API_KEY:        ${GROQ_API_KEY}
@@ -31,6 +40,8 @@ services:
     depends_on:
       migrate:
         condition: service_completed_successfully
+      redis:
+        condition: service_started
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health || exit 1"]
       interval: 30s
@@ -48,15 +59,20 @@ services:
       NODE_ENV:        production
       DATABASE_URL:    ${DATABASE_URL}
       DIRECT_URL:      ${DIRECT_URL}
-      REDIS_URL:       ${REDIS_URL}
+      REDIS_URL:       redis://redis:6379
       GROQ_API_KEY:    ${GROQ_API_KEY}
       SERPAPI_API_KEY: ${SERPAPI_API_KEY}
       RESEND_API_KEY:  ${RESEND_API_KEY:-}
     depends_on:
       migrate:
         condition: service_completed_successfully
+      redis:
+        condition: service_started
     networks:
       - nginx-proxy-manager_default
+
+volumes:
+  redis-data:
 
 networks:
   nginx-proxy-manager_default:
