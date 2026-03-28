@@ -30,7 +30,9 @@ export default async function Home({
           <span className="font-bold text-slate-900 dark:text-slate-100">TravelDeals</span>
         </Link>
         <div className="flex items-center gap-1 sm:gap-2">
-          <LanguageSwitcher />
+          <div className="hidden sm:block">
+            <LanguageSwitcher />
+          </div>
           <ThemeToggle />
           <Link
             href="/login"

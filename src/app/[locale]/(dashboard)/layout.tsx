@@ -44,8 +44,10 @@ export default async function DashboardLayout({
             </div>
 
             <div className="flex items-center gap-2">
-              <LanguageSwitcher />
-              <ThemeToggle />
+              <div className="hidden sm:flex items-center gap-2">
+                <LanguageSwitcher />
+                <ThemeToggle />
+              </div>
               <UserMenu
                 name={session.user.name ?? ""}
                 email={session.user.email ?? ""}
