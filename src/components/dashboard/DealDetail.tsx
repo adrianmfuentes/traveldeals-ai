@@ -148,7 +148,7 @@ export default function DealDetail({ deal, onClose }: DealDetailProps) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/50"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/50 pt-16 sm:pt-0"
       aria-hidden="false"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
@@ -158,7 +158,7 @@ export default function DealDetail({ deal, onClose }: DealDetailProps) {
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
-        className="bg-white dark:bg-slate-900 rounded-t-2xl sm:rounded-2xl shadow-xl w-full sm:max-w-2xl max-h-[92vh] sm:max-h-[90vh] overflow-y-auto border border-transparent dark:border-slate-800 outline-none"
+        className="bg-white dark:bg-slate-900 rounded-t-2xl sm:rounded-2xl shadow-xl w-full sm:max-w-2xl max-h-[85dvh] sm:max-h-[90vh] overflow-y-auto overscroll-contain border border-transparent dark:border-slate-800 outline-none"
       >
         {/* Header */}
         <div className="sticky top-0 bg-white dark:bg-slate-900 flex items-center justify-between p-4 sm:p-6 border-b border-slate-100 dark:border-slate-800 z-10">
