@@ -25,6 +25,7 @@ interface Deal {
   bookingUrl?: string | null;
   hotelName?: string | null;
   hotelPrice?: number | null;
+  hotelBookingUrl?: string | null;
 }
 
 const PAGE_SIZE = 4;
@@ -38,11 +39,12 @@ export default function DealsSection({ alertId }: DealsSectionProps) {
   const [deals, setDeals] = useState<Deal[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState("");
   const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
 
-  // Keep a stable ref to current deals length for "load more"
+  // Keep a stable ref to current deals length for "load more" and refresh detection
   const dealsLengthRef = useRef(0);
   dealsLengthRef.current = deals.length;
 
@@ -54,8 +56,13 @@ export default function DealsSection({ alertId }: DealsSectionProps) {
 
   const fetchDeals = useCallback(async (reset = true) => {
     if (reset) {
-      setLoading(true);
       setError("");
+      // Only show skeleton when there are no deals to display yet
+      if (dealsLengthRef.current === 0) {
+        setLoading(true);
+      } else {
+        setRefreshing(true);
+      }
     } else {
       setLoadingMore(true);
     }
@@ -70,8 +77,12 @@ export default function DealsSection({ alertId }: DealsSectionProps) {
     } catch {
       if (reset) setError(t("loadError"));
     } finally {
-      if (reset) setLoading(false);
-      else setLoadingMore(false);
+      if (reset) {
+        setLoading(false);
+        setRefreshing(false);
+      } else {
+        setLoadingMore(false);
+      }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [alertId]);
@@ -84,7 +95,6 @@ export default function DealsSection({ alertId }: DealsSectionProps) {
     function onRefresh() { fetchDeals(true); }
 
     function removeAlertDeals(targetAlertId: string) {
-      // Capture removed count before the state update, then adjust total separately
       setDeals((prev) => {
         const next = prev.filter((d) => d.alertId !== targetAlertId);
         const removed = prev.length - next.length;
@@ -116,6 +126,7 @@ export default function DealsSection({ alertId }: DealsSectionProps) {
   }, [fetchDeals]);
 
   const hasMore = deals.length < total;
+  const isBusy = loading || refreshing;
 
   return (
     <div>
@@ -130,14 +141,24 @@ export default function DealsSection({ alertId }: DealsSectionProps) {
         </h2>
         <button
           onClick={() => fetchDeals(true)}
-          disabled={loading}
-          className="flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-40"
+          disabled={isBusy}
+          aria-label={t("refresh")}
+          className="flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
         >
-          <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
+          <RefreshCw size={14} className={isBusy ? "animate-spin" : ""} aria-hidden="true" />
           {t("refresh")}
         </button>
       </div>
 
+      {/* Thin refresh progress bar — visible during background refresh only */}
+      <div
+        className={`h-0.5 rounded-full mb-4 overflow-hidden bg-blue-100 dark:bg-blue-900 transition-opacity duration-300 ${refreshing ? "opacity-100" : "opacity-0 pointer-events-none"}`}
+        aria-hidden="true"
+      >
+        <div className="h-full w-2/5 bg-blue-500 rounded-full animate-shimmer" />
+      </div>
+
+      {/* Skeleton — only when no deals exist yet */}
       {loading && (
         <div className="grid gap-4 sm:grid-cols-2">
           {[1, 2, 3].map((i) => (
@@ -168,7 +189,7 @@ export default function DealsSection({ alertId }: DealsSectionProps) {
 
       {!loading && !error && deals.length > 0 && (
         <>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className={`grid gap-4 sm:grid-cols-2 transition-opacity duration-300 ${refreshing ? "opacity-60" : "opacity-100"}`}>
             {deals.map((deal) => (
               <DealCard
                 key={deal.id}

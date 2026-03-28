@@ -14,33 +14,42 @@ export default async function Home({
   const tn = await getTranslations("nav");
 
   return (
-    <main className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100">
+    <div className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100">
+      {/* Skip link */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:bg-white dark:focus:bg-slate-900 focus:text-blue-600 focus:px-4 focus:py-2 focus:rounded-lg focus:ring-2 focus:ring-blue-500 focus:shadow-lg"
+      >
+        Skip to main content
+      </a>
+
       {/* Nav */}
-      <nav className="flex items-center justify-between px-6 py-4 max-w-5xl mx-auto border-b border-slate-100 dark:border-slate-800">
-        <div className="flex items-center gap-2">
-          <Plane size={16} className="text-blue-500" />
+      <nav aria-label="Main navigation" className="flex items-center justify-between px-4 sm:px-6 py-4 max-w-5xl mx-auto border-b border-slate-100 dark:border-slate-800">
+        <Link href="/" className="flex items-center gap-2" aria-label="TravelDeals — Home">
+          <Plane size={16} className="text-blue-500" aria-hidden="true" />
           <span className="font-bold text-slate-900 dark:text-slate-100">TravelDeals</span>
-        </div>
-        <div className="flex items-center gap-2">
+        </Link>
+        <div className="flex items-center gap-1 sm:gap-2">
           <LanguageSwitcher />
           <ThemeToggle />
           <Link
             href="/login"
-            className="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white px-3 py-1.5 transition-colors"
+            className="hidden sm:inline-flex text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white px-3 py-1.5 transition-colors rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
           >
             {tn("login")}
           </Link>
           <Link
             href="/register"
-            className="text-sm font-medium bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-4 py-1.5 rounded-lg hover:opacity-90 transition-opacity"
+            className="text-sm font-medium bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-3 sm:px-4 py-1.5 rounded-lg hover:opacity-90 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 dark:focus-visible:ring-white"
           >
             {tn("register")}
           </Link>
         </div>
       </nav>
 
+      <main id="main-content" tabIndex={-1}>
       {/* Hero */}
-      <div className="max-w-5xl mx-auto px-6 pt-20 pb-16 lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-12 sm:pt-20 pb-12 sm:pb-16 lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
         <div>
           <span className="inline-block text-xs font-semibold uppercase tracking-widest text-blue-500 mb-4">
             {t("badge")}
@@ -59,7 +68,7 @@ export default async function Home({
               className="inline-flex items-center justify-center gap-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold px-6 py-3 rounded-xl text-sm transition-colors"
             >
               {t("ctaStart")}
-              <ArrowRight size={15} />
+              <ArrowRight size={15} aria-hidden="true" />
             </Link>
             <Link
               href="/login"
@@ -103,7 +112,7 @@ export default async function Home({
       </div>
 
       {/* How it works */}
-      <div className="max-w-5xl mx-auto px-6 pb-20">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 pb-16 sm:pb-20">
         <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-8">
           {t("how")}
         </h2>
@@ -132,14 +141,14 @@ export default async function Home({
 
       {/* Features */}
       <div className="border-t border-slate-100 dark:border-slate-800">
-        <div className="max-w-5xl mx-auto px-6 py-16 grid sm:grid-cols-3 gap-8">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-12 sm:py-16 grid sm:grid-cols-3 gap-8">
           {[
             { title: t("features.alerts.title"), desc: t("features.alerts.desc") },
             { title: t("features.sources.title"), desc: t("features.sources.desc") },
             { title: t("features.ai.title"), desc: t("features.ai.desc") },
           ].map((f) => (
             <div key={f.title}>
-              <Check size={16} className="text-blue-500 mb-3" />
+              <Check size={16} className="text-blue-500 mb-3" aria-hidden="true" />
               <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-2 text-sm">
                 {f.title}
               </h3>
@@ -150,6 +159,7 @@ export default async function Home({
           ))}
         </div>
       </div>
-    </main>
+      </main>
+    </div>
   );
 }

@@ -104,6 +104,12 @@ const serpApiProvider: FlightProvider = {
           other: data.other_flights?.length ?? 0,
         });
 
+        const outboundStr = outboundDate.toISOString().split("T")[0];
+        const returnStr   = returnDate.toISOString().split("T")[0];
+        const flightBookingUrl =
+          `https://www.google.com/flights#flt=${originCode}.${dest}.${outboundStr}` +
+          `*${dest}.${originCode}.${returnStr};c:${params.currency}`;
+
         for (const flight of data.best_flights ?? data.other_flights ?? []) {
           if (!flight.price || flight.price <= 0) continue;
           const leg = flight.flights?.[0];
@@ -111,13 +117,13 @@ const serpApiProvider: FlightProvider = {
             origin: originCode,
             destination: dest,
             departureDate: leg?.departure_airport?.time ?? params.dateFrom.toISOString(),
-            returnDate: undefined,
+            returnDate: returnDate.toISOString(),
             airline: leg?.airline,
             price: flight.price,
             currency: params.currency,
             stops: (flight.flights?.length ?? 1) - 1,
             duration: `${Math.floor((flight.total_duration ?? 0) / 60)}h`,
-            bookingUrl: undefined,
+            bookingUrl: flightBookingUrl,
             raw: flight,
             source: "serpapi" as const,
           });

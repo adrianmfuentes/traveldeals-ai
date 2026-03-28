@@ -9,7 +9,8 @@
     "deleteAccountConfirm": "This will permanently delete your account and all your data. This cannot be undone.",
     "deleteAccountAction": "Delete permanently",
     "cancel": "Cancel",
-    "deleting": "Deleting..."
+    "deleting": "Deleting...",
+    "accountMenu": "Account menu"
   },
   "landing": {
     "badge": "Flight price tracker",
@@ -140,7 +141,10 @@
       "searchErrorHint": "The alert will retry automatically on the next scheduled run.",
       "searchTimeout": "The search is taking longer than expected",
       "searchTimeoutHint": "Results will appear here automatically once ready.",
-      "dismiss": "Dismiss"
+      "dismiss": "Dismiss",
+      "close": "Close",
+      "travelDates": "Travel dates",
+      "tripDuration": "Trip duration"
     }
   },
   "deals": {
@@ -163,8 +167,11 @@
       "flightFrom": "Flight from",
       "totalEstimate": "Total estimate",
       "book": "Book",
+      "bookFlight": "Book flight",
+      "bookHotel": "Book hotel",
       "viewDetails": "View details",
-      "hotel": "Hotel"
+      "hotel": "Hotel",
+      "opensInNewTab": "opens in new tab"
     },
     "detail": {
       "score": "Deal score",
@@ -176,12 +183,17 @@
         "food": "Food",
         "activities": "Activities",
         "transport": "Local transport",
-        "total": "Total estimate"
+        "total": "Total estimate",
+        "category": "Category",
+        "amount": "Amount"
       },
       "warnings": "Warnings",
       "itinerary": "Day-by-day itinerary",
       "book": "Book flight",
+      "bookFlight": "Book flight",
+      "bookHotel": "Book hotel",
       "close": "Close",
+      "opensInNewTab": "opens in new tab",
       "tip": "Tip",
       "estimatedCost": "Day {day}"
     }

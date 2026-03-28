@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { X, ExternalLink, AlertTriangle, Star } from "lucide-react";
 import { useTranslations } from "next-intl";
 
@@ -41,6 +42,7 @@ interface Deal {
   bookingUrl?: string | null;
   hotelName?: string | null;
   hotelPrice?: number | null;
+  hotelBookingUrl?: string | null;
 }
 
 interface DealDetailProps {
@@ -49,7 +51,6 @@ interface DealDetailProps {
 }
 
 function ScoreBar({ score }: { score: number }) {
-  const t = useTranslations("deals.detail");
   const ts = useTranslations("deals.score");
 
   const color =
@@ -71,7 +72,14 @@ function ScoreBar({ score }: { score: number }) {
         <span>{label}</span>
         <span className="font-bold">{score}/100</span>
       </div>
-      <div className="h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+      <div
+        className="h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden"
+        role="progressbar"
+        aria-valuenow={score}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label={`${label}: ${score}/100`}
+      >
         <div
           className={`h-full rounded-full transition-all ${color}`}
           style={{ width: `${score}%` }}
@@ -84,6 +92,8 @@ function ScoreBar({ score }: { score: number }) {
 export default function DealDetail({ deal, onClose }: DealDetailProps) {
   const t = useTranslations("deals.detail");
   const tb = useTranslations("deals.detail.budget");
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const titleId = "deal-detail-title";
 
   const budget = deal.aiBudget as AiBudget | null;
   const itinerary = deal.aiItinerary as AiItineraryDay[] | null;
@@ -96,13 +106,67 @@ export default function DealDetail({ deal, onClose }: DealDetailProps) {
     year: "numeric",
   });
 
+  // Focus trap + Escape key + restore focus on close
+  useEffect(() => {
+    const previousActive = document.activeElement as HTMLElement | null;
+    dialogRef.current?.focus();
+
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        onClose();
+        return;
+      }
+      if (e.key !== "Tab") return;
+
+      const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      );
+      if (!focusable || focusable.length === 0) return;
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+
+      if (e.shiftKey) {
+        if (document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else {
+        if (document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      previousActive?.focus();
+    };
+  }, [onClose]);
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-transparent dark:border-slate-800">
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/50"
+      aria-hidden="false"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
+        className="bg-white dark:bg-slate-900 rounded-t-2xl sm:rounded-2xl shadow-xl w-full sm:max-w-2xl max-h-[92vh] sm:max-h-[90vh] overflow-y-auto border border-transparent dark:border-slate-800 outline-none"
+      >
         {/* Header */}
-        <div className="sticky top-0 bg-white dark:bg-slate-900 flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-800 z-10">
+        <div className="sticky top-0 bg-white dark:bg-slate-900 flex items-center justify-between p-4 sm:p-6 border-b border-slate-100 dark:border-slate-800 z-10">
           <div>
-            <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
+            <h2
+              id={titleId}
+              className="text-lg sm:text-xl font-bold text-slate-900 dark:text-slate-100"
+            >
               {deal.origin} → {deal.destination}
             </h2>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5 capitalize">
@@ -111,13 +175,14 @@ export default function DealDetail({ deal, onClose }: DealDetailProps) {
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+            aria-label={t("close")}
+            className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
           >
-            <X size={20} />
+            <X size={20} aria-hidden="true" />
           </button>
         </div>
 
-        <div className="p-6 space-y-6">
+        <div className="p-4 sm:p-6 space-y-6">
           {/* Score */}
           {deal.aiScore != null && (
             <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-4">
@@ -126,6 +191,7 @@ export default function DealDetail({ deal, onClose }: DealDetailProps) {
                   size={16}
                   className="text-yellow-500"
                   fill="currentColor"
+                  aria-hidden="true"
                 />
                 <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
                   {t("score")}
@@ -155,6 +221,13 @@ export default function DealDetail({ deal, onClose }: DealDetailProps) {
               </h3>
               <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
                 <table className="w-full text-sm">
+                  <caption className="sr-only">{tb("title")}</caption>
+                  <thead className="sr-only">
+                    <tr>
+                      <th scope="col">{tb("category")}</th>
+                      <th scope="col">{tb("amount")}</th>
+                    </tr>
+                  </thead>
                   <tbody>
                     {[
                       { label: tb("flight"), value: budget.flight },
@@ -176,9 +249,12 @@ export default function DealDetail({ deal, onClose }: DealDetailProps) {
                       </tr>
                     ))}
                     <tr className="bg-blue-50 dark:bg-blue-950">
-                      <td className="px-4 py-3 font-bold text-slate-900 dark:text-slate-100">
+                      <th
+                        scope="row"
+                        className="px-4 py-3 text-left font-bold text-slate-900 dark:text-slate-100"
+                      >
                         {tb("total")}
-                      </td>
+                      </th>
                       <td className="px-4 py-3 text-right font-bold text-blue-700 dark:text-blue-400 text-base">
                         {budget.total.toLocaleString()} {budget.currency}
                       </td>
@@ -191,9 +267,16 @@ export default function DealDetail({ deal, onClose }: DealDetailProps) {
 
           {/* Warnings */}
           {warnings && warnings.length > 0 && (
-            <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
+            <div
+              role="note"
+              className="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-xl p-4"
+            >
               <div className="flex items-center gap-2 mb-2">
-                <AlertTriangle size={15} className="text-amber-600 dark:text-amber-400" />
+                <AlertTriangle
+                  size={15}
+                  className="text-amber-600 dark:text-amber-400"
+                  aria-hidden="true"
+                />
                 <span className="text-sm font-semibold text-amber-700 dark:text-amber-400">
                   {t("warnings")}
                 </span>
@@ -202,9 +285,8 @@ export default function DealDetail({ deal, onClose }: DealDetailProps) {
                 {warnings.map((w, i) => (
                   <li
                     key={i}
-                    className="text-sm text-amber-700 dark:text-amber-400 flex gap-2"
+                    className="text-sm text-amber-700 dark:text-amber-400"
                   >
-                    <span className="mt-1 shrink-0">•</span>
                     {w}
                   </li>
                 ))}
@@ -235,7 +317,10 @@ export default function DealDetail({ deal, onClose }: DealDetailProps) {
                     <div className="divide-y divide-slate-100 dark:divide-slate-800">
                       {day.activities.map((activity, i) => (
                         <div key={i} className="px-4 py-3 flex gap-3">
-                          <span className="text-xs text-blue-500 dark:text-blue-400 font-mono w-12 shrink-0 pt-0.5">
+                          <span
+                            className="text-xs text-blue-500 dark:text-blue-400 font-mono w-12 shrink-0 pt-0.5"
+                            aria-label={activity.time}
+                          >
                             {activity.time}
                           </span>
                           <div className="flex-1 min-w-0">
@@ -264,17 +349,34 @@ export default function DealDetail({ deal, onClose }: DealDetailProps) {
             </div>
           )}
 
-          {/* Booking button */}
-          {deal.bookingUrl && (
-            <a
-              href={deal.bookingUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 bg-blue-600 text-white rounded-xl py-3 font-semibold hover:bg-blue-700 transition-colors"
-            >
-              <ExternalLink size={16} />
-              {t("book")}
-            </a>
+          {/* Booking buttons */}
+          {(deal.bookingUrl || deal.hotelBookingUrl) && (
+            <div className="flex flex-col sm:flex-row gap-3">
+              {deal.bookingUrl && (
+                <a
+                  href={deal.bookingUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 flex items-center justify-center gap-2 bg-blue-600 text-white rounded-xl py-3 font-semibold hover:bg-blue-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                >
+                  <ExternalLink size={16} aria-hidden="true" />
+                  {t("bookFlight")}
+                  <span className="sr-only"> ({t("opensInNewTab")})</span>
+                </a>
+              )}
+              {deal.hotelBookingUrl && (
+                <a
+                  href={deal.hotelBookingUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 flex items-center justify-center gap-2 bg-white dark:bg-slate-800 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-700 rounded-xl py-3 font-semibold hover:bg-blue-50 dark:hover:bg-blue-950 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                >
+                  <ExternalLink size={16} aria-hidden="true" />
+                  {t("bookHotel")}
+                  <span className="sr-only"> ({t("opensInNewTab")})</span>
+                </a>
+              )}
+            </div>
           )}
         </div>
       </div>

@@ -84,12 +84,13 @@ export default function AlertCard({ alert, onUpdate, onEdit }: AlertCardProps) {
       : "—";
 
   return (
-    <div
+    <article
       className={`bg-white dark:bg-slate-900 rounded-xl border transition-all ${
         alert.isActive
           ? "border-slate-200 dark:border-slate-700 shadow-sm"
           : "border-slate-100 dark:border-slate-800 opacity-55"
       }`}
+      aria-label={`${alert.origin} → ${alert.destinations.join(", ") || "any"}`}
     >
       {/* Top accent */}
       <div
@@ -114,7 +115,10 @@ export default function AlertCard({ alert, onUpdate, onEdit }: AlertCardProps) {
             </span>
           </div>
           {alert._count.deals > 0 && (
-            <span className="shrink-0 bg-blue-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+            <span
+              className="shrink-0 bg-blue-600 text-white text-xs font-bold px-2 py-0.5 rounded-full"
+              aria-label={`${alert._count.deals} deals found`}
+            >
               {alert._count.deals}
             </span>
           )}
@@ -199,6 +203,6 @@ export default function AlertCard({ alert, onUpdate, onEdit }: AlertCardProps) {
           )}
         </div>
       </div>
-    </div>
+    </article>
   );
 }

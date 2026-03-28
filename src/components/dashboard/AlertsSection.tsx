@@ -22,7 +22,7 @@ interface SearchAlert {
 }
 
 type SearchStatus = "searching" | "no_flights" | "error" | "timeout";
-type SearchState = { alertId: string; status: SearchStatus };
+type SearchState = { alertId: string; status: SearchStatus; startedAt?: number };
 
 const SS_KEY = "searchState";
 
@@ -36,9 +36,12 @@ export default function AlertsSection() {
   const [showForm, setShowForm] = useState(false);
   const [editingAlert, setEditingAlert] = useState<SearchAlert | null>(null);
   const [searchState, setSearchState] = useState<SearchState | null>(null);
+  const [searchElapsed, setSearchElapsed] = useState(0);
 
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pollCountRef = useRef(0);
+  // Track whether we've done the first fetch so background refreshes skip the skeleton
+  const initializedRef = useRef(false);
 
   // Restore state across remounts (theme / language changes)
   useEffect(() => {
@@ -63,7 +66,8 @@ export default function AlertsSection() {
   }
 
   const fetchAlerts = useCallback(async () => {
-    setLoading(true);
+    // Only show skeleton on the very first load
+    if (!initializedRef.current) setLoading(true);
     setError("");
     try {
       const res = await fetch("/api/alerts");
@@ -73,6 +77,7 @@ export default function AlertsSection() {
     } catch {
       setError(t("loadError"));
     } finally {
+      initializedRef.current = true;
       setLoading(false);
     }
   }, [t]);
@@ -81,7 +86,7 @@ export default function AlertsSection() {
     fetchAlerts();
   }, [fetchAlerts]);
 
-  // Auto-refresh alert cards every 60s to pick up updated deal counts
+  // Auto-refresh alert cards every 60s to pick up updated deal counts (no skeleton)
   useEffect(() => {
     const id = setInterval(fetchAlerts, 60_000);
     return () => clearInterval(id);
@@ -103,6 +108,21 @@ export default function AlertsSection() {
       window.removeEventListener("alert:deleted", onAlertDeleted);
     };
   }, [fetchAlerts, router]);
+
+  // Elapsed time counter while searching
+  useEffect(() => {
+    if (searchState?.status !== "searching") {
+      setSearchElapsed(0);
+      return;
+    }
+    // If the state was restored from sessionStorage, compute elapsed from startedAt
+    const started = searchState.startedAt ?? Date.now();
+    setSearchElapsed(Math.floor((Date.now() - started) / 1000));
+    const id = setInterval(() => {
+      setSearchElapsed(Math.floor((Date.now() - started) / 1000));
+    }, 1000);
+    return () => clearInterval(id);
+  }, [searchState?.status, searchState?.alertId, searchState?.startedAt]);
 
   // Poll the job result only while status === "searching"
   useEffect(() => {
@@ -164,9 +184,12 @@ export default function AlertsSection() {
           new CustomEvent("alert:edited", { detail: { alertId } })
         );
       }
-      saveState({ alertId, status: "searching" });
+      saveState({ alertId, status: "searching", startedAt: Date.now() });
     }
   }
+
+  // Progress bar fills to 95% over 60s, then holds
+  const progressPct = Math.min(95, (searchElapsed / 60) * 100);
 
   return (
     <div>
@@ -190,22 +213,33 @@ export default function AlertsSection() {
 
       {/* Searching banner */}
       {searchState?.status === "searching" && (
-        <div className="mb-4 flex items-start gap-3 bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 rounded-xl px-4 py-3">
-          <Loader2 size={16} className="text-blue-500 animate-spin mt-0.5 shrink-0" />
-          <div>
-            <p className="text-sm font-medium text-blue-800 dark:text-blue-300">
-              {tf("searching")}
-            </p>
-            <p className="text-xs text-blue-600 dark:text-blue-400 mt-0.5">
+        <div role="status" aria-live="polite" className="mb-4 flex items-start gap-3 bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 rounded-xl px-4 py-3">
+          <Loader2 size={16} className="text-blue-500 animate-spin mt-0.5 shrink-0" aria-hidden="true" />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between gap-2 mb-0.5">
+              <p className="text-sm font-medium text-blue-800 dark:text-blue-300">
+                {tf("searching")}
+              </p>
+              <span className="text-xs tabular-nums text-blue-500 dark:text-blue-400 shrink-0">
+                {searchElapsed}s
+              </span>
+            </div>
+            <p className="text-xs text-blue-600 dark:text-blue-400 mb-2">
               {tf("searchingHint")}
             </p>
+            <div className="h-1 bg-blue-100 dark:bg-blue-900 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-blue-500 rounded-full transition-all duration-1000 ease-out"
+                style={{ width: `${progressPct}%` }}
+              />
+            </div>
           </div>
         </div>
       )}
 
       {/* No flights found banner */}
       {searchState?.status === "no_flights" && (
-        <div className="mb-4 flex items-start gap-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl px-4 py-3">
+        <div role="alert" aria-live="assertive" className="mb-4 flex items-start gap-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl px-4 py-3">
           <AlertTriangle size={16} className="text-amber-500 mt-0.5 shrink-0" />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
@@ -227,7 +261,7 @@ export default function AlertsSection() {
 
       {/* Search error banner */}
       {(searchState?.status === "error" || searchState?.status === "timeout") && (
-        <div className="mb-4 flex items-start gap-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-xl px-4 py-3">
+        <div role="alert" aria-live="assertive" className="mb-4 flex items-start gap-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-xl px-4 py-3">
           <AlertTriangle size={16} className="text-red-500 mt-0.5 shrink-0" />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-red-800 dark:text-red-300">

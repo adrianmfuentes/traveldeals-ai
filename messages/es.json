@@ -9,7 +9,8 @@
     "deleteAccountConfirm": "Esto eliminará permanentemente tu cuenta y todos tus datos. Esta acción no se puede deshacer.",
     "deleteAccountAction": "Eliminar definitivamente",
     "cancel": "Cancelar",
-    "deleting": "Eliminando..."
+    "deleting": "Eliminando...",
+    "accountMenu": "Menú de cuenta"
   },
   "landing": {
     "badge": "Rastreador de precios de vuelos",
@@ -140,7 +141,10 @@
       "searchErrorHint": "La alerta lo reintentará automáticamente en la próxima ejecución programada.",
       "searchTimeout": "La búsqueda está tardando más de lo esperado",
       "searchTimeoutHint": "Los resultados aparecerán aquí automáticamente cuando estén listos.",
-      "dismiss": "Cerrar"
+      "dismiss": "Cerrar",
+      "close": "Cerrar",
+      "travelDates": "Fechas de viaje",
+      "tripDuration": "Duración del viaje"
     }
   },
   "deals": {
@@ -163,8 +167,11 @@
       "flightFrom": "Vuelo desde",
       "totalEstimate": "Total estimado",
       "book": "Reservar",
+      "bookFlight": "Reservar vuelo",
+      "bookHotel": "Reservar hotel",
       "viewDetails": "Ver detalles",
-      "hotel": "Hotel"
+      "hotel": "Hotel",
+      "opensInNewTab": "se abre en nueva pestaña"
     },
     "detail": {
       "score": "Puntuación de la oferta",
@@ -176,12 +183,17 @@
         "food": "Comida",
         "activities": "Actividades",
         "transport": "Transporte local",
-        "total": "Total estimado"
+        "total": "Total estimado",
+        "category": "Categoría",
+        "amount": "Importe"
       },
       "warnings": "Avisos",
       "itinerary": "Itinerario día a día",
       "book": "Reservar vuelo",
+      "bookFlight": "Reservar vuelo",
+      "bookHotel": "Reservar hotel",
       "close": "Cerrar",
+      "opensInNewTab": "se abre en nueva pestaña",
       "tip": "Consejo",
       "estimatedCost": "Día {day}"
     }
