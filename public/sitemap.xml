@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <!-- English (en) -->
+  <url>
+    <loc>https://traveldeals.example.com/en</loc>
+    <xhtml:link rel="alternate" hreflang="es" href="https://traveldeals.example.com/es" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://traveldeals.example.com/fr" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://traveldeals.example.com/en" />
+    <lastmod>2026-03-30</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+
+  <url>
+    <loc>https://traveldeals.example.com/en/login</loc>
+    <xhtml:link rel="alternate" hreflang="es" href="https://traveldeals.example.com/es/login" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://traveldeals.example.com/fr/login" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://traveldeals.example.com/en/login" />
+    <lastmod>2026-03-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://traveldeals.example.com/en/register</loc>
+    <xhtml:link rel="alternate" hreflang="es" href="https://traveldeals.example.com/es/register" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://traveldeals.example.com/fr/register" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://traveldeals.example.com/en/register" />
+    <lastmod>2026-03-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Spanish (es) - Default locale -->
+  <url>
+    <loc>https://traveldeals.example.com/es</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://traveldeals.example.com/en" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://traveldeals.example.com/fr" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://traveldeals.example.com/es" />
+    <lastmod>2026-03-30</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+
+  <url>
+    <loc>https://traveldeals.example.com/es/login</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://traveldeals.example.com/en/login" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://traveldeals.example.com/fr/login" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://traveldeals.example.com/es/login" />
+    <lastmod>2026-03-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://traveldeals.example.com/es/register</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://traveldeals.example.com/en/register" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://traveldeals.example.com/fr/register" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://traveldeals.example.com/es/register" />
+    <lastmod>2026-03-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- French (fr) -->
+  <url>
+    <loc>https://traveldeals.example.com/fr</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://traveldeals.example.com/en" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://traveldeals.example.com/es" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://traveldeals.example.com/fr" />
+    <lastmod>2026-03-30</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+
+  <url>
+    <loc>https://traveldeals.example.com/fr/login</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://traveldeals.example.com/en/login" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://traveldeals.example.com/es/login" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://traveldeals.example.com/fr/login" />
+    <lastmod>2026-03-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://traveldeals.example.com/fr/register</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://traveldeals.example.com/en/register" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://traveldeals.example.com/es/register" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://traveldeals.example.com/fr/register" />
+    <lastmod>2026-03-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+</urlset>
