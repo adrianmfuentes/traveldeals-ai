@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { routing } from "@/i18n/routing";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import SessionProvider from "@/components/SessionProvider";
+import Script from "next/script"; // <-- Importante: El componente Script de Next.js
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -25,6 +26,26 @@ export default async function LocaleLayout({
 
   return (
     <html lang={locale} suppressHydrationWarning>
+      <head>
+        {/* Script principal de Google Analytics */}
+        <Script
+          strategy="afterInteractive"
+          src={`https://www.googletagmanager.com/gtag/js?id=G-JQ2J5KT0NG`}
+        />
+        {/* Configuración de Google Analytics */}
+        <Script
+          id="google-analytics"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', 'G-JQ2J5KT0NG');
+            `,
+          }}
+        />
+      </head>
       <body className={inter.className}>
         <SessionProvider>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
