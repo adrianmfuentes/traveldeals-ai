@@ -28,7 +28,7 @@ const nextConfig = {
         // Disable FLoC / reduce fingerprinting surface
         {
           key: "Permissions-Policy",
-          value: "camera=(), microphone=(), geolocation=(), interest-cohort=()",
+          value: "camera=(), microphone=(), geolocation=()",
         },
         // Force HTTPS in production (2 years, include subdomains)
         ...(process.env.NODE_ENV === "production"
