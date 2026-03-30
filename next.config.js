@@ -43,12 +43,12 @@ const nextConfig = {
             "style-src 'self' 'unsafe-inline'",
             // Next.js SSR hydration requires unsafe-inline/unsafe-eval in dev
             process.env.NODE_ENV === "production"
-              ? "script-src 'self' 'unsafe-inline'"
-              : "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
+              ? "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com"
+              : "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.googletagmanager.com",
             "img-src 'self' data: https:",
             "font-src 'self'",
-            // API calls only to self
-            "connect-src 'self'",
+            // API calls only to self + Google Analytics
+            "connect-src 'self' https://www.google-analytics.com https://analytics.google.com https://region1.google-analytics.com",
             "frame-ancestors 'none'",
             "base-uri 'self'",
             "form-action 'self'",
