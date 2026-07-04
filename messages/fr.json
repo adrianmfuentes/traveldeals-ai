@@ -56,7 +56,33 @@
       "submitting": "Connexion en cours...",
       "noAccount": "Vous n'avez pas de compte ?",
       "signUp": "Inscrivez-vous gratuitement",
-      "invalidCredentials": "Email ou mot de passe incorrect"
+      "invalidCredentials": "Email ou mot de passe incorrect",
+      "forgotPassword": "Mot de passe oublié ?"
+    },
+    "forgotPassword": {
+      "title": "Réinitialisez votre mot de passe",
+      "subtitle": "Saisissez votre email et nous vous enverrons un lien de réinitialisation",
+      "email": "Email",
+      "submit": "Envoyer le lien",
+      "submitting": "Envoi en cours...",
+      "success": "Si cet email est enregistré, vous recevrez bientôt un lien de réinitialisation.",
+      "tooManyAttempts": "Trop de tentatives. Attendez 15 minutes.",
+      "connectionError": "Erreur de connexion. Veuillez réessayer.",
+      "backToLogin": "Retour à la connexion"
+    },
+    "resetPassword": {
+      "title": "Définissez un nouveau mot de passe",
+      "subtitle": "Choisissez un nouveau mot de passe pour votre compte",
+      "password": "Nouveau mot de passe",
+      "passwordHint": "Minimum 10 caractères, majuscule et chiffre",
+      "submit": "Mettre à jour le mot de passe",
+      "submitting": "Mise à jour...",
+      "success": "Mot de passe mis à jour. Redirection vers la connexion...",
+      "invalidToken": "Ce lien est invalide ou a expiré.",
+      "invalidData": "Données invalides",
+      "tooManyAttempts": "Trop de tentatives. Attendez 15 minutes.",
+      "connectionError": "Erreur de connexion. Veuillez réessayer.",
+      "backToLogin": "Demander un nouveau lien"
     },
     "register": {
       "title": "TravelDeals AI",

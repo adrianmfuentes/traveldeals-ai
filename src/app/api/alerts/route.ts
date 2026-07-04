@@ -10,18 +10,27 @@ const log = createLogger("API:alerts");
 
 const VALID_CURRENCIES = ["EUR", "USD", "GBP", "CHF", "JPY", "CAD", "AUD"] as const;
 
-const createAlertSchema = z.object({
-  origin: z.string().min(2).max(100),
-  destinations: z.array(z.string().min(2).max(100)).min(1).max(10),
-  passengers: z.number().int().min(1).max(10).default(1),
-  dateFrom: z.string().datetime(),
-  dateTo: z.string().datetime(),
-  tripDurationMin: z.number().int().min(1).max(365),
-  tripDurationMax: z.number().int().min(1).max(365),
-  maxBudget: z.number().positive().max(1_000_000).optional(),
-  currency: z.enum(VALID_CURRENCIES).default("EUR"),
-  frequencyMinutes: z.number().int().min(0).max(10080).default(720), // 0 = one-time search
-});
+const createAlertSchema = z
+  .object({
+    origin: z.string().min(2).max(100),
+    destinations: z.array(z.string().min(2).max(100)).min(1).max(10),
+    passengers: z.number().int().min(1).max(10).default(1),
+    dateFrom: z.string().datetime(),
+    dateTo: z.string().datetime(),
+    tripDurationMin: z.number().int().min(1).max(365),
+    tripDurationMax: z.number().int().min(1).max(365),
+    maxBudget: z.number().positive().max(1_000_000).optional(),
+    currency: z.enum(VALID_CURRENCIES).default("EUR"),
+    frequencyMinutes: z.number().int().min(0).max(10080).default(720), // 0 = one-time search
+  })
+  .refine((data) => new Date(data.dateTo) >= new Date(data.dateFrom), {
+    message: "dateTo debe ser posterior o igual a dateFrom",
+    path: ["dateTo"],
+  })
+  .refine((data) => data.tripDurationMax >= data.tripDurationMin, {
+    message: "tripDurationMax debe ser mayor o igual a tripDurationMin",
+    path: ["tripDurationMax"],
+  });
 
 // GET /api/alerts — Listar alertas del usuario
 export async function GET(req: NextRequest) {

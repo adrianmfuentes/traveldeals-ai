@@ -4,6 +4,7 @@ import type { FlightOffer, AiDealAnalysis } from "../../src/types";
 // ── Shared mock state ────────────────────────────────────────────────────────
 
 const prismaFindUnique = vi.fn();
+const prismaFindFirst = vi.fn();
 const prismaCreate = vi.fn();
 const prismaUpdate = vi.fn();
 
@@ -18,7 +19,7 @@ vi.mock("@prisma/client", () => ({
   PrismaClient: vi.fn().mockImplementation(function () {
     return {
       searchAlert: { findUnique: prismaFindUnique },
-      deal: { create: prismaCreate, update: prismaUpdate },
+      deal: { findFirst: prismaFindFirst, create: prismaCreate, update: prismaUpdate },
     };
   }),
 }));
@@ -46,6 +47,16 @@ vi.mock("date-fns", () => ({
     return d;
   }),
   format: vi.fn().mockImplementation((date: Date) => date.toISOString().split("T")[0]),
+  startOfDay: vi.fn().mockImplementation((date: Date) => {
+    const d = new Date(date);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }),
+  endOfDay: vi.fn().mockImplementation((date: Date) => {
+    const d = new Date(date);
+    d.setHours(23, 59, 59, 999);
+    return d;
+  }),
 }));
 
 // ── Import module under test AFTER mocks ─────────────────────────────────────
@@ -114,6 +125,7 @@ describe("processSearchAlert", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     prismaFindUnique.mockResolvedValue(mockPrismaAlert);
+    prismaFindFirst.mockResolvedValue(null);
     prismaCreate.mockResolvedValue(mockDeal);
     prismaUpdate.mockResolvedValue({ ...mockDeal });
     mockSearchFlights.mockResolvedValue([mockFlight]);
@@ -213,5 +225,52 @@ describe("processSearchAlert", () => {
     await processSearchAlert("alert-1");
 
     expect(prismaCreate).toHaveBeenCalledTimes(5);
+  });
+
+  it("updates the existing deal instead of creating a duplicate on a repeat run", async () => {
+    prismaFindFirst.mockResolvedValueOnce({
+      id: "deal-1",
+      flightPrice: 120,
+      isNotified: true,
+    });
+
+    await processSearchAlert("alert-1");
+
+    expect(prismaCreate).not.toHaveBeenCalled();
+    expect(prismaUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: "deal-1" } })
+    );
+  });
+
+  it("does not re-send the notification for an already-notified deal with an unchanged price", async () => {
+    prismaFindFirst.mockResolvedValueOnce({
+      id: "deal-1",
+      flightPrice: 120,
+      isNotified: true,
+    });
+    prismaUpdate.mockResolvedValue({ id: "deal-1", isNotified: true });
+
+    await processSearchAlert("alert-1");
+
+    expect(mockSendEmail).not.toHaveBeenCalled();
+  });
+
+  it("re-sends the notification when the price has dropped since the last notification", async () => {
+    prismaFindFirst.mockResolvedValueOnce({
+      id: "deal-1",
+      flightPrice: 150,
+      isNotified: true,
+    });
+    prismaUpdate.mockResolvedValueOnce({ id: "deal-1", isNotified: false });
+
+    await processSearchAlert("alert-1");
+
+    expect(prismaUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "deal-1" },
+        data: expect.objectContaining({ isNotified: false }),
+      })
+    );
+    expect(mockSendEmail).toHaveBeenCalledOnce();
   });
 });

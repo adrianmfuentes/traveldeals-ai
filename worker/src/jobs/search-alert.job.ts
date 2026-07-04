@@ -6,7 +6,7 @@ import { searchFlights } from "../providers/flight-provider";
 import { searchHotels } from "../providers/hotel-provider";
 import { analyzeDealWithAI } from "../services/ai-analyzer";
 import { sendDealNotification } from "../services/email";
-import { addDays, format } from "date-fns";
+import { addDays, format, startOfDay, endOfDay } from "date-fns";
 
 const log = createLogger("Job");
 
@@ -59,27 +59,54 @@ export async function processSearchAlert(alertId: string, redis?: IORedis): Prom
   // ─── 2. Tomar las 5 mejores ofertas por precio ─────
   const topFlights = flights.sort((a, b) => a.price - b.price).slice(0, 5);
 
-  // ─── 3. Crear todos los deals en paralelo ──────────
+  // ─── 3. Crear o actualizar deals (evita duplicados y reenvíos en cada ciclo) ─
+  // Un mismo vuelo (misma ruta + día de salida) que ya se encontró en un ciclo
+  // anterior se actualiza en lugar de crear un registro nuevo. Así una alerta
+  // recurrente no acumula filas duplicadas ni reenvía el email de notificación
+  // en cada ejecución para la misma oferta. Si el precio bajó desde la última
+  // notificación, se permite notificar de nuevo (mejor oferta = nueva noticia).
   const deals = await Promise.all(
-    topFlights.map((flight) =>
-      prisma.deal.create({
+    topFlights.map(async (flight) => {
+      const departureDate = new Date(flight.departureDate);
+      const existing = await prisma.deal.findFirst({
+        where: {
+          alertId: alert.id,
+          origin: flight.origin,
+          destination: flight.destination,
+          departureDate: { gte: startOfDay(departureDate), lte: endOfDay(departureDate) },
+        },
+      });
+
+      const data = {
+        returnDate: flight.returnDate ? new Date(flight.returnDate) : null,
+        airline: flight.airline,
+        flightPrice: flight.price,
+        flightData: flight.raw,
+        flightSource: flight.source,
+        bookingUrl: flight.bookingUrl,
+        currency: flight.currency,
+        status: "PROCESSING" as const,
+      };
+
+      if (existing) {
+        const priceImproved = flight.price < Number(existing.flightPrice);
+        return prisma.deal.update({
+          where: { id: existing.id },
+          data: { ...data, ...(priceImproved ? { isNotified: false } : {}) },
+        });
+      }
+
+      return prisma.deal.create({
         data: {
           alertId: alert.id,
           userId: alert.user.id,
           origin: flight.origin,
           destination: flight.destination,
-          departureDate: new Date(flight.departureDate),
-          returnDate: flight.returnDate ? new Date(flight.returnDate) : null,
-          airline: flight.airline,
-          flightPrice: flight.price,
-          flightData: flight.raw,
-          flightSource: flight.source,
-          bookingUrl: flight.bookingUrl,
-          currency: flight.currency,
-          status: "PROCESSING",
+          departureDate,
+          ...data,
         },
-      })
-    )
+      });
+    })
   );
 
   // ─── 4-6. Procesar todos los deals en paralelo ─────

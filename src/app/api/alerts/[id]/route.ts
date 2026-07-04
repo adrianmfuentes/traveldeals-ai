@@ -10,19 +10,32 @@ const log = createLogger("API:alerts");
 
 const VALID_CURRENCIES = ["EUR", "USD", "GBP", "CHF", "JPY", "CAD", "AUD"] as const;
 
-const patchAlertSchema = z.object({
-  isActive: z.boolean().optional(),
-  origin: z.string().min(2).max(100).optional(),
-  destinations: z.array(z.string().min(2).max(100)).min(1).max(10).optional(),
-  passengers: z.number().int().min(1).max(10).optional(),
-  dateFrom: z.string().datetime().optional(),
-  dateTo: z.string().datetime().optional(),
-  tripDurationMin: z.number().int().min(1).max(365).optional(),
-  tripDurationMax: z.number().int().min(1).max(365).optional(),
-  maxBudget: z.number().positive().max(1_000_000).nullable().optional(),
-  currency: z.enum(VALID_CURRENCIES).optional(),
-  frequencyMinutes: z.number().int().min(0).max(10080).optional(),
-});
+const patchAlertSchema = z
+  .object({
+    isActive: z.boolean().optional(),
+    origin: z.string().min(2).max(100).optional(),
+    destinations: z.array(z.string().min(2).max(100)).min(1).max(10).optional(),
+    passengers: z.number().int().min(1).max(10).optional(),
+    dateFrom: z.string().datetime().optional(),
+    dateTo: z.string().datetime().optional(),
+    tripDurationMin: z.number().int().min(1).max(365).optional(),
+    tripDurationMax: z.number().int().min(1).max(365).optional(),
+    maxBudget: z.number().positive().max(1_000_000).nullable().optional(),
+    currency: z.enum(VALID_CURRENCIES).optional(),
+    frequencyMinutes: z.number().int().min(0).max(10080).optional(),
+  })
+  .refine(
+    (data) =>
+      !data.dateFrom || !data.dateTo || new Date(data.dateTo) >= new Date(data.dateFrom),
+    { message: "dateTo debe ser posterior o igual a dateFrom", path: ["dateTo"] }
+  )
+  .refine(
+    (data) =>
+      data.tripDurationMin == null ||
+      data.tripDurationMax == null ||
+      data.tripDurationMax >= data.tripDurationMin,
+    { message: "tripDurationMax debe ser mayor o igual a tripDurationMin", path: ["tripDurationMax"] }
+  );
 
 // PATCH /api/alerts/[id] — Actualizar alerta (toggle isActive, etc.)
 export async function PATCH(

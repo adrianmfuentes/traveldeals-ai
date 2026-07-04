@@ -56,7 +56,33 @@
       "submitting": "Signing in...",
       "noAccount": "Don't have an account?",
       "signUp": "Sign up free",
-      "invalidCredentials": "Incorrect email or password"
+      "invalidCredentials": "Incorrect email or password",
+      "forgotPassword": "Forgot your password?"
+    },
+    "forgotPassword": {
+      "title": "Reset your password",
+      "subtitle": "Enter your email and we'll send you a reset link",
+      "email": "Email",
+      "submit": "Send reset link",
+      "submitting": "Sending...",
+      "success": "If that email is registered, you'll receive a password reset link shortly.",
+      "tooManyAttempts": "Too many attempts. Wait 15 minutes.",
+      "connectionError": "Connection error. Please try again.",
+      "backToLogin": "Back to sign in"
+    },
+    "resetPassword": {
+      "title": "Set a new password",
+      "subtitle": "Choose a new password for your account",
+      "password": "New password",
+      "passwordHint": "Minimum 10 characters, uppercase and number",
+      "submit": "Update password",
+      "submitting": "Updating...",
+      "success": "Password updated. Redirecting to sign in...",
+      "invalidToken": "This reset link is invalid or has expired.",
+      "invalidData": "Invalid data",
+      "tooManyAttempts": "Too many attempts. Wait 15 minutes.",
+      "connectionError": "Connection error. Please try again.",
+      "backToLogin": "Request a new link"
     },
     "register": {
       "title": "TravelDeals AI",

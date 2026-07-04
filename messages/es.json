@@ -56,7 +56,33 @@
       "submitting": "Iniciando sesión...",
       "noAccount": "¿No tienes cuenta?",
       "signUp": "Regístrate gratis",
-      "invalidCredentials": "Email o contraseña incorrectos"
+      "invalidCredentials": "Email o contraseña incorrectos",
+      "forgotPassword": "¿Olvidaste tu contraseña?"
+    },
+    "forgotPassword": {
+      "title": "Restablece tu contraseña",
+      "subtitle": "Introduce tu email y te enviaremos un enlace para restablecerla",
+      "email": "Email",
+      "submit": "Enviar enlace",
+      "submitting": "Enviando...",
+      "success": "Si el email está registrado, recibirás un enlace para restablecer tu contraseña en breve.",
+      "tooManyAttempts": "Demasiados intentos. Espera 15 minutos.",
+      "connectionError": "Error de conexión. Inténtalo de nuevo.",
+      "backToLogin": "Volver a iniciar sesión"
+    },
+    "resetPassword": {
+      "title": "Establece una nueva contraseña",
+      "subtitle": "Elige una nueva contraseña para tu cuenta",
+      "password": "Nueva contraseña",
+      "passwordHint": "Mínimo 10 caracteres, mayúscula y número",
+      "submit": "Actualizar contraseña",
+      "submitting": "Actualizando...",
+      "success": "Contraseña actualizada. Redirigiendo al inicio de sesión...",
+      "invalidToken": "Este enlace no es válido o ha caducado.",
+      "invalidData": "Datos inválidos",
+      "tooManyAttempts": "Demasiados intentos. Espera 15 minutos.",
+      "connectionError": "Error de conexión. Inténtalo de nuevo.",
+      "backToLogin": "Solicitar un nuevo enlace"
     },
     "register": {
       "title": "TravelDeals AI",
