@@ -1,0 +1,164 @@
+name: Deploy to Oracle Ampere
+
+on:
+  workflow_run:
+    workflows: ["Build & Push Docker Images"]
+    branches: [master]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      clean_volumes:
+        description: 'Delete ALL data volumes (postgres + redis). DESTRUCTIVE — irreversible.'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  REGISTRY: ghcr.io
+  DEPLOY_DIR: traveldeals-ai
+  SSH_PORT: 4422
+
+jobs:
+  deploy:
+    name: Deploy to Server
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Configure SSH
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST || vars.SERVER_HOST }}
+          SERVER_USER: ${{ secrets.SERVER_USER || vars.SERVER_USER }}
+          SERVER_SSH_KEY: ${{ secrets.SERVER_SSH_KEY || vars.SERVER_SSH_KEY }}
+        run: |
+          if [ -z "$SERVER_HOST" ] || [ -z "$SERVER_USER" ] || [ -z "$SERVER_SSH_KEY" ]; then
+            echo "ERROR: SERVER_HOST, SERVER_USER, or SERVER_SSH_KEY is not set in the 'production' environment."
+            echo "Add them under Settings > Environments > production > Secrets (or Secrets > Actions for repo-level)."
+            exit 1
+          fi
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$SERVER_SSH_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          if ! ssh-keyscan -T 15 -H -p ${{ env.SSH_PORT }} "$SERVER_HOST" >> ~/.ssh/known_hosts 2>/dev/null; then
+            echo "ssh-keyscan on port ${{ env.SSH_PORT }} failed; disabling StrictHostKeyChecking for this host"
+            cat >> ~/.ssh/config << SSHCONF
+          Host $SERVER_HOST
+            StrictHostKeyChecking no
+            UserKnownHostsFile /dev/null
+            IdentityFile ~/.ssh/id_rsa
+            LogLevel ERROR
+          SSHCONF
+          fi
+
+      - name: Create deployment directory
+        env:
+          SERVER_USER: ${{ secrets.SERVER_USER || vars.SERVER_USER }}
+          SERVER_HOST: ${{ secrets.SERVER_HOST || vars.SERVER_HOST }}
+        run: |
+          ssh -o ConnectTimeout=30 -o ServerAliveInterval=15 -o BatchMode=yes -p ${{ env.SSH_PORT }} "$SERVER_USER@$SERVER_HOST" "mkdir -p ~/${{ env.DEPLOY_DIR }}"
+
+      - name: Copy Docker Compose file
+        env:
+          SERVER_USER: ${{ secrets.SERVER_USER || vars.SERVER_USER }}
+          SERVER_HOST: ${{ secrets.SERVER_HOST || vars.SERVER_HOST }}
+        run: |
+          scp -P ${{ env.SSH_PORT }} docker-compose.prod.yml "$SERVER_USER@$SERVER_HOST:~/${{ env.DEPLOY_DIR }}/docker-compose.yml"
+
+      - name: Create .env file and copy to server
+        env:
+          SERVER_USER: ${{ secrets.SERVER_USER || vars.SERVER_USER }}
+          SERVER_HOST: ${{ secrets.SERVER_HOST || vars.SERVER_HOST }}
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER || vars.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD || vars.POSTGRES_PASSWORD }}
+          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET || vars.NEXTAUTH_SECRET }}
+          NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL || vars.NEXTAUTH_URL }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY || vars.GROQ_API_KEY }}
+          SERPAPI_API_KEY: ${{ secrets.SERPAPI_API_KEY || vars.SERPAPI_API_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY || vars.RESEND_API_KEY }}
+          NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL || vars.NEXT_PUBLIC_APP_URL }}
+        run: |
+          for name in POSTGRES_USER POSTGRES_PASSWORD NEXTAUTH_SECRET NEXTAUTH_URL GROQ_API_KEY SERPAPI_API_KEY NEXT_PUBLIC_APP_URL; do
+            if [ -z "${!name}" ]; then
+              echo "ERROR: $name is not set. Add it under Settings > Environments > production > Secrets (or Secrets > Actions for repo-level)."
+              exit 1
+            fi
+          done
+          {
+            printf 'POSTGRES_USER=%s\n'       "$POSTGRES_USER"
+            printf 'POSTGRES_PASSWORD=%s\n'   "$POSTGRES_PASSWORD"
+            printf 'NEXTAUTH_SECRET=%s\n'     "$NEXTAUTH_SECRET"
+            printf 'NEXTAUTH_URL=%s\n'        "$NEXTAUTH_URL"
+            printf 'GROQ_API_KEY=%s\n'        "$GROQ_API_KEY"
+            printf 'SERPAPI_API_KEY=%s\n'     "$SERPAPI_API_KEY"
+            printf 'RESEND_API_KEY=%s\n'      "$RESEND_API_KEY"
+            printf 'NEXT_PUBLIC_APP_URL=%s\n' "$NEXT_PUBLIC_APP_URL"
+          } > .env.prod
+          scp -P ${{ env.SSH_PORT }} .env.prod "$SERVER_USER@$SERVER_HOST:~/${{ env.DEPLOY_DIR }}/.env"
+
+      - name: Pull latest images
+        env:
+          SERVER_USER: ${{ secrets.SERVER_USER || vars.SERVER_USER }}
+          SERVER_HOST: ${{ secrets.SERVER_HOST || vars.SERVER_HOST }}
+          REGISTRY: ${{ env.REGISTRY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_ACTOR: ${{ github.actor }}
+        run: |
+          ssh -p ${{ env.SSH_PORT }} "$SERVER_USER@$SERVER_HOST" "cd ~/${{ env.DEPLOY_DIR }} && \
+            echo '$GITHUB_TOKEN' | docker login $REGISTRY -u '$GITHUB_ACTOR' --password-stdin && \
+            docker compose pull"
+
+      - name: Clean data volumes
+        if: inputs.clean_volumes == true
+        env:
+          SERVER_USER: ${{ secrets.SERVER_USER || vars.SERVER_USER }}
+          SERVER_HOST: ${{ secrets.SERVER_HOST || vars.SERVER_HOST }}
+        run: |
+          ssh -p ${{ env.SSH_PORT }} "$SERVER_USER@$SERVER_HOST" "cd ~/${{ env.DEPLOY_DIR }} && \
+            docker compose down --volumes --remove-orphans 2>/dev/null && \
+            echo 'traveldeals-ai data volumes (postgres-data, redis-data) deleted.'"
+
+      - name: Restart services
+        env:
+          SERVER_USER: ${{ secrets.SERVER_USER || vars.SERVER_USER }}
+          SERVER_HOST: ${{ secrets.SERVER_HOST || vars.SERVER_HOST }}
+        run: |
+          ssh -p ${{ env.SSH_PORT }} "$SERVER_USER@$SERVER_HOST" "cd ~/${{ env.DEPLOY_DIR }} && \
+            docker compose down --remove-orphans 2>/dev/null; \
+            sleep 3; docker compose up -d"
+
+      - name: Health check
+        env:
+          SERVER_USER: ${{ secrets.SERVER_USER || vars.SERVER_USER }}
+          SERVER_HOST: ${{ secrets.SERVER_HOST || vars.SERVER_HOST }}
+        run: |
+          ssh -p ${{ env.SSH_PORT }} "$SERVER_USER@$SERVER_HOST" " \
+            cd ~/${{ env.DEPLOY_DIR }}; \
+            healthy=false; \
+            for i in \$(seq 1 30); do \
+              status=\$(docker inspect --format='{{.State.Health.Status}}' \$(docker compose ps -q app) 2>/dev/null); \
+              if [ \"\$status\" = 'healthy' ]; then \
+                echo 'App is healthy'; healthy=true; break; \
+              fi; \
+              echo \"Waiting for app... (status: \$status)\"; sleep 2; \
+            done; \
+            if [ \"\$healthy\" != 'true' ]; then \
+              echo 'ERROR: App did not become healthy. Showing app container logs (last 50 lines):'; \
+              docker compose logs --tail=50 app 2>&1; \
+              echo '---'; \
+              exit 1; \
+            fi"
+
+      - name: Show container status
+        env:
+          SERVER_USER: ${{ secrets.SERVER_USER || vars.SERVER_USER }}
+          SERVER_HOST: ${{ secrets.SERVER_HOST || vars.SERVER_HOST }}
+        run: |
+          ssh -p ${{ env.SSH_PORT }} "$SERVER_USER@$SERVER_HOST" "cd ~/${{ env.DEPLOY_DIR }} && docker compose ps"

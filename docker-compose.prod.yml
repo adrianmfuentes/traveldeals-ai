@@ -1,25 +1,48 @@
 # =============================================================================
-# TravelDeals AI — Production (NeonDB + local Redis for BullMQ)
+# TravelDeals AI — Production (self-hosted Postgres + Redis)
 # Usage: docker compose -f docker-compose.prod.yml --env-file .env up -d
 # =============================================================================
 
 services:
 
-  # ── Local Redis (BullMQ queue — avoids Upstash request-limit issues) ────────
+  # ── PostgreSQL ──────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: traveldeals
+      POSTGRES_USER: ${POSTGRES_USER:-traveldeals}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-traveldeals}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - internal
+
+  # ── Redis (BullMQ queue) ─────────────────────────────────────────────────────
   redis:
     image: redis:7-alpine
     restart: unless-stopped
     volumes:
       - redis-data:/data
     networks:
-      - nginx-proxy-manager_default
+      - internal
 
   # ── DB migrations (runs once on startup) ──────────────────────────────────
   migrate:
     image: ghcr.io/adrianmfuentes/traveldeals-ai/migrate:latest
     environment:
-      DATABASE_URL: ${DATABASE_URL}
-      DIRECT_URL:   ${DIRECT_URL}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-traveldeals}:${POSTGRES_PASSWORD}@postgres:5432/traveldeals
+      DIRECT_URL:   postgresql://${POSTGRES_USER:-traveldeals}:${POSTGRES_PASSWORD}@postgres:5432/traveldeals
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - internal
     restart: on-failure
 
   # ── Next.js app ─────────────────────────────────────────────────────────────
@@ -28,8 +51,8 @@ services:
     restart: unless-stopped
     environment:
       NODE_ENV: production
-      DATABASE_URL:        ${DATABASE_URL}
-      DIRECT_URL:          ${DIRECT_URL}
+      DATABASE_URL:        postgresql://${POSTGRES_USER:-traveldeals}:${POSTGRES_PASSWORD}@postgres:5432/traveldeals
+      DIRECT_URL:          postgresql://${POSTGRES_USER:-traveldeals}:${POSTGRES_PASSWORD}@postgres:5432/traveldeals
       REDIS_URL:           redis://redis:6379
       NEXTAUTH_SECRET:     ${NEXTAUTH_SECRET}
       NEXTAUTH_URL:        ${NEXTAUTH_URL}
@@ -49,6 +72,7 @@ services:
       retries: 3
       start_period: 15s
     networks:
+      - internal
       - nginx-proxy-manager_default
 
   # ── Background worker ────────────────────────────────────────────────────────
@@ -57,8 +81,8 @@ services:
     restart: unless-stopped
     environment:
       NODE_ENV:        production
-      DATABASE_URL:    ${DATABASE_URL}
-      DIRECT_URL:      ${DIRECT_URL}
+      DATABASE_URL:    postgresql://${POSTGRES_USER:-traveldeals}:${POSTGRES_PASSWORD}@postgres:5432/traveldeals
+      DIRECT_URL:      postgresql://${POSTGRES_USER:-traveldeals}:${POSTGRES_PASSWORD}@postgres:5432/traveldeals
       REDIS_URL:       redis://redis:6379
       GROQ_API_KEY:    ${GROQ_API_KEY}
       SERPAPI_API_KEY: ${SERPAPI_API_KEY}
@@ -69,11 +93,14 @@ services:
       redis:
         condition: service_started
     networks:
-      - nginx-proxy-manager_default
+      - internal
 
 volumes:
+  postgres-data:
   redis-data:
 
 networks:
+  internal:
+    driver: bridge
   nginx-proxy-manager_default:
     external: true
