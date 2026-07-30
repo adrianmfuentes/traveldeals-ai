@@ -5,7 +5,7 @@
  */
 export function sanitizeForLog<T>(value: T): T {
   if (typeof value === "string") {
-    return value.replace(/[\r\n\t\x00-\x1f\x7f]/g, " ") as unknown as T;
+    return value.replace(/[\x00-\x1f\x7f]/g, " ") as unknown as T;
   }
   if (Array.isArray(value)) {
     return value.map((v) => sanitizeForLog(v)) as unknown as T;
