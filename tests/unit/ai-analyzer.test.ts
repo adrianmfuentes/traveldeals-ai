@@ -58,7 +58,7 @@ const validAiResponse = {
   warnings: ["Vuelo directo, sin escalas"],
 };
 
-// Groq returns: { choices: [{ message: { content: "..." } }] }
+// Wraps text in the Groq chat-completion response shape (choices[0].message.content).
 function groqResponse(text: string) {
   return { choices: [{ message: { content: text } }] };
 }

@@ -2,6 +2,7 @@
 
 import { Plane, Calendar, ExternalLink, Hotel, ArrowRight } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { isSafeHttpUrl } from "@/lib/safe-url";
 
 interface Deal {
   id: string;
@@ -180,9 +181,9 @@ export default function DealCard({ deal, onClick }: DealCardProps) {
           </div>
 
           {/* Booking links */}
-          {(deal.bookingUrl || deal.hotelBookingUrl) && (
+          {(isSafeHttpUrl(deal.bookingUrl) || isSafeHttpUrl(deal.hotelBookingUrl)) && (
             <div className="relative z-10 flex flex-wrap gap-2">
-              {deal.bookingUrl && (
+              {isSafeHttpUrl(deal.bookingUrl) && (
                 <a
                   href={deal.bookingUrl}
                   target="_blank"
@@ -196,7 +197,7 @@ export default function DealCard({ deal, onClick }: DealCardProps) {
                   <span className="sr-only"> ({t("opensInNewTab")})</span>
                 </a>
               )}
-              {deal.hotelBookingUrl && (
+              {isSafeHttpUrl(deal.hotelBookingUrl) && (
                 <a
                   href={deal.hotelBookingUrl}
                   target="_blank"

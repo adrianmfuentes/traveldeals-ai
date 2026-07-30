@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, afterEach } from "vitest";
 import { deduplicateOffers } from "../../worker/src/providers/flight-provider";
 import type { FlightOffer } from "../../src/types";
 

@@ -2,6 +2,7 @@ import type { FlightOffer } from "../../src/types";
 import { CircuitBreaker } from "../lib/circuit-breaker";
 import { resolveToAirportCodes } from "../lib/city-airports";
 import { createLogger, toLogError } from "@platform/core/lib/logger";
+import { sanitizeForLog } from "../lib/log-sanitize";
 
 const log = createLogger("FlightProvider");
 
@@ -87,22 +88,22 @@ const serpApiProvider: FlightProvider = {
         const res = await fetch(`https://serpapi.com/search?${searchParams}`);
         if (!res.ok) {
           const errText = await res.text();
-          log.error("SerpApi HTTP error", { route: `${originCode}→${dest}`, status: res.status, body: errText.slice(0, 200) });
+          log.error("SerpApi HTTP error", sanitizeForLog({ route: `${originCode}→${dest}`, status: res.status, body: errText.slice(0, 200) }));
           continue;
         }
 
         const data = await res.json();
 
         if (data.error) {
-          log.error("SerpApi API error", { route: `${originCode}→${dest}`, error: data.error });
+          log.error("SerpApi API error", sanitizeForLog({ route: `${originCode}→${dest}`, error: data.error }));
           continue;
         }
 
-        log.debug("SerpApi results", {
+        log.debug("SerpApi results", sanitizeForLog({
           route: `${originCode}→${dest}`,
           best: data.best_flights?.length ?? 0,
           other: data.other_flights?.length ?? 0,
-        });
+        }));
 
         const outboundStr = outboundDate.toISOString().split("T")[0];
         const returnStr   = returnDate.toISOString().split("T")[0];

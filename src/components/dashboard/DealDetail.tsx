@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { X, ExternalLink, AlertTriangle, Star } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { isSafeHttpUrl } from "@/lib/safe-url";
 
 interface AiBudget {
   flight: number;
@@ -350,9 +351,9 @@ export default function DealDetail({ deal, onClose }: DealDetailProps) {
           )}
 
           {/* Booking buttons */}
-          {(deal.bookingUrl || deal.hotelBookingUrl) && (
+          {(isSafeHttpUrl(deal.bookingUrl) || isSafeHttpUrl(deal.hotelBookingUrl)) && (
             <div className="flex flex-col sm:flex-row gap-3">
-              {deal.bookingUrl && (
+              {isSafeHttpUrl(deal.bookingUrl) && (
                 <a
                   href={deal.bookingUrl}
                   target="_blank"
@@ -364,7 +365,7 @@ export default function DealDetail({ deal, onClose }: DealDetailProps) {
                   <span className="sr-only"> ({t("opensInNewTab")})</span>
                 </a>
               )}
-              {deal.hotelBookingUrl && (
+              {isSafeHttpUrl(deal.hotelBookingUrl) && (
                 <a
                   href={deal.hotelBookingUrl}
                   target="_blank"

@@ -112,7 +112,7 @@ interface AnalyzeParams {
 }
 
 export async function analyzeDealWithAI(params: AnalyzeParams): Promise<AiDealAnalysis> {
-  const { flight, passengers, tripDurationMin, tripDurationMax, hotel } = params;
+  const { flight, passengers, tripDurationMin, hotel } = params;
 
   const tripDays = tripDurationMin ?? 3;
 

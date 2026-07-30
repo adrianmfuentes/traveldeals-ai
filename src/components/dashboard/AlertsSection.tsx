@@ -113,7 +113,7 @@ export default function AlertsSection() {
   useEffect(() => {
     if (searchState?.status !== "searching") {
       setSearchElapsed(0);
-      return;
+      return undefined;
     }
     // If the state was restored from sessionStorage, compute elapsed from startedAt
     const started = searchState.startedAt ?? Date.now();
@@ -126,7 +126,7 @@ export default function AlertsSection() {
 
   // Poll the job result only while status === "searching"
   useEffect(() => {
-    if (searchState?.status !== "searching") return;
+    if (searchState?.status !== "searching") return undefined;
 
     const alertId = searchState.alertId;
     pollCountRef.current = 0;

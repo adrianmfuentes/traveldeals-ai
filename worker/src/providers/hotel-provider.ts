@@ -1,6 +1,7 @@
 import type { HotelOffer } from "../../src/types";
 import { airportToCity } from "../lib/city-airports";
 import { createLogger, toLogError } from "@platform/core/lib/logger";
+import { sanitizeForLog } from "../lib/log-sanitize";
 
 const log = createLogger("HotelProvider");
 
@@ -41,19 +42,19 @@ const serpApiHotelProvider = {
 
     if (!res.ok) {
       const errText = await res.text();
-      log.error("SerpApi Hotels HTTP error", { city: cityName, status: res.status, body: errText.slice(0, 200) });
+      log.error("SerpApi Hotels HTTP error", sanitizeForLog({ city: cityName, status: res.status, body: errText.slice(0, 200) }));
       return [];
     }
 
     const data = await res.json();
 
     if (data.error) {
-      log.error("SerpApi Hotels API error", { city: cityName, error: data.error });
+      log.error("SerpApi Hotels API error", sanitizeForLog({ city: cityName, error: data.error }));
       return [];
     }
 
     const properties: any[] = data.properties ?? [];
-    log.debug("Hotel results", { city: cityName, count: properties.length });
+    log.debug("Hotel results", sanitizeForLog({ city: cityName, count: properties.length }));
 
     const offers: HotelOffer[] = properties
       .filter((p) => p.rate_per_night?.lowest != null)
