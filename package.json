@@ -55,7 +55,9 @@
     "esbuild": "^0.28.1",
     "minimatch": "^10.2.6",
     "glob": "^11.0.0",
-    "rimraf": "^6.0.1"
+    "rimraf": "^6.0.1",
+    "mysql2": "^3.24.4",
+    "deepmerge-ts": "^8.0.2"
   },
   "devDependencies": {
     "@swc/helpers": "^0.5.19",
