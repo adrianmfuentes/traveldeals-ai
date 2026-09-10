@@ -216,6 +216,75 @@ docker compose down -v
 
 ---
 
+## 10. CI/CD deployment (GitHub Actions)
+
+`.github/workflows/deploy.yml` deploys automatically after **Build & Push
+Docker Images** succeeds on `master` (or via *Run workflow*).
+
+### Why a single multiplexed SSH connection
+
+The server runs **CrowdSec** with the `ssh-bf` scenario: several SSH
+authentications from the same IP in a short window get the source banned,
+which previously made the GitHub runner's SSH calls time out mid-deploy.
+
+The workflow now produces **exactly one SSH authentication per deployment**:
+
+1. A **WireGuard** tunnel is brought up first; the deploy target is the
+   server's *private* WireGuard IP, so SSH traffic never reaches the public
+   IP that CrowdSec watches.
+2. `known_hosts` is written from the `SERVER_SSH_KNOWN_HOSTS` secret —
+   `ssh-keyscan` is gone and `StrictHostKeyChecking` stays `yes`.
+3. One **master connection** is opened (`ssh -Nf deploy-target`) with
+   `ControlMaster auto` / `ControlPath ~/.ssh/cm-%r@%h:%p` /
+   `ControlPersist 300s`. Every later step (bundle transfer, remote script)
+   rides that socket with no re-auth. It is closed in an `if: always()` step
+   (`ssh -O exit deploy-target`).
+4. The master open is wrapped in a `retry()` with 5 / 15 / 30 s backoff.
+
+All remote logic (registry login, `compose pull/down/up`, health-check loop)
+lives in the versioned script **`deploy/remote-deploy.sh`**. The compose
+file, generated `.env` and that script are shipped in one pipeline:
+`tar c … | ssh deploy-target "tar x -C ~/traveldeals-ai"`.
+
+### Required GitHub secrets (environment: `production`)
+
+| Secret | Purpose | How to generate |
+|---|---|---|
+| `SERVER_USER` | SSH login user | — |
+| `SERVER_SSH_KEY` | Private key for that user (PEM, full contents) | `ssh-keygen -t ed25519 -f deploy_key` → contents of `deploy_key`; add `deploy_key.pub` to the server's `~/.ssh/authorized_keys` |
+| `SERVER_SSH_KNOWN_HOSTS` | `known_hosts` line(s) for the server on port `4422`, keyed by its **WireGuard IP** | On a host already on the VPN: `ssh-keyscan -p 4422 <WG_SERVER_IP>` — paste the output verbatim |
+| `WG_PRIVATE_KEY` | WireGuard private key of the runner peer | `wg genkey` (its `wg pubkey` must be added as a `[Peer]` on the server's `wg0.conf`) |
+| `WG_SERVER_PUBKEY` | WireGuard public key of the server | `wg show wg0 public-key` on the server |
+| `WG_ENDPOINT` | Server WireGuard endpoint, `host:port` | e.g. `deals.example.com:51820` (public IP/host + `ListenPort`) |
+| `WG_SERVER_IP` | Server's private address inside the tunnel | e.g. `10.10.0.1` — the deploy target host |
+
+Optional repository **variable** `WG_CLIENT_ADDRESS` overrides the runner's
+in-tunnel address (default `10.10.0.2/32`); it must match the `AllowedIPs`
+of the runner peer on the server.
+
+App secrets consumed by the generated `.env`: `POSTGRES_USER`,
+`POSTGRES_PASSWORD`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, `GROQ_API_KEY`,
+`SERPAPI_API_KEY`, `NEXT_PUBLIC_APP_URL` (required) and `RESEND_API_KEY`
+(optional). Write a literal `$` as `$$` — see the note in section 2.
+
+### Server-side WireGuard peer (one-time)
+
+```ini
+# /etc/wireguard/wg0.conf  on the server, add:
+[Peer]
+PublicKey = <wg pubkey of WG_PRIVATE_KEY>
+AllowedIPs = 10.10.0.2/32
+```
+
+```bash
+sudo wg-quick down wg0 && sudo wg-quick up wg0   # reload
+```
+
+Make sure CrowdSec / the firewall trusts the tunnel subnet (`10.10.0.0/24`)
+and that `sshd` listens on the WireGuard interface (port `4422`).
+
+---
+
 ## Environment variable reference
 
 | Variable | Required | Description |
