@@ -229,22 +229,36 @@ which previously made the GitHub runner's SSH calls time out mid-deploy.
 
 The workflow now produces **exactly one SSH authentication per deployment**:
 
-1. A **WireGuard** tunnel is brought up first; the deploy target is the
-   server's *private* WireGuard IP, so SSH traffic never reaches the public
-   IP that CrowdSec watches.
-2. `known_hosts` is written from the `SERVER_SSH_KNOWN_HOSTS` secret —
-   `ssh-keyscan` is gone and `StrictHostKeyChecking` stays `yes`.
-3. One **master connection** is opened (`ssh -Nf deploy-target`) with
+1. A **WireGuard** tunnel is brought up first. The tunnel subnet is
+   `10.66.66.0/24`: the server is `10.66.66.1` (the deploy target), the CI
+   runner peer is `10.66.66.10`. SSH traffic rides the tunnel, so it never
+   reaches the public IP that CrowdSec watches.
+   **Fail-closed:** if the tunnel does not come up (no handshake), the job
+   aborts. There is **no fallback to the public hostname** — ever.
+2. The runner's ephemeral `wg0.conf` sets `MTU = 1280` on `[Interface]`
+   (prevents SSH from hanging over the tunnel on the runner) and
+   `AllowedIPs = 10.66.66.1/32` on `[Peer]` (only the server, no wider route).
+3. `known_hosts` is written from the `SERVER_SSH_KNOWN_HOSTS` secret —
+   `ssh-keyscan` is gone and `StrictHostKeyChecking` stays `yes`. Because the
+   SSH `HostName` is now `10.66.66.1`, that secret **must** contain the
+   `ssh-keyscan -p 4422 10.66.66.1` line (keyed by the WireGuard IP), **not**
+   the line for the public hostname.
+4. One **master connection** is opened (`ssh -Nf deploy-target`) with
    `ControlMaster auto` / `ControlPath ~/.ssh/cm-%r@%h:%p` /
    `ControlPersist 300s`. Every later step (bundle transfer, remote script)
    rides that socket with no re-auth. It is closed in an `if: always()` step
    (`ssh -O exit deploy-target`).
-4. The master open is wrapped in a `retry()` with 5 / 15 / 30 s backoff.
+5. Both the `wg-quick up` + first handshake and the master `ssh -Nf` are
+   wrapped in a `retry()`: **max 3 attempts, backoff 5 / 15 / 30 s**. This
+   only absorbs network flaps or a slow handshake — it does **not** rescue a
+   real CrowdSec ban (the tunnel itself is what avoids that).
 
 All remote logic (registry login, `compose pull/down/up`, health-check loop)
 lives in the versioned script **`deploy/remote-deploy.sh`**. The compose
 file, generated `.env` and that script are shipped in one pipeline:
-`tar c … | ssh deploy-target "tar x -C ~/traveldeals-ai"`.
+`tar c … | ssh deploy-target "tar x -C ~/traveldeals-ai"`. Right after the
+transfer the runner deletes `stage/` (which held the `.env`); an
+`if: always()` step scrubs it again. No secret is ever written to stdout.
 
 ### Required GitHub secrets (environment: `production`)
 
@@ -252,14 +266,14 @@ file, generated `.env` and that script are shipped in one pipeline:
 |---|---|---|
 | `SERVER_USER` | SSH login user | — |
 | `SERVER_SSH_KEY` | Private key for that user (PEM, full contents) | `ssh-keygen -t ed25519 -f deploy_key` → contents of `deploy_key`; add `deploy_key.pub` to the server's `~/.ssh/authorized_keys` |
-| `SERVER_SSH_KNOWN_HOSTS` | `known_hosts` line(s) for the server on port `4422`, keyed by its **WireGuard IP** | On a host already on the VPN: `ssh-keyscan -p 4422 <WG_SERVER_IP>` — paste the output verbatim |
-| `WG_PRIVATE_KEY` | WireGuard private key of the runner peer | `wg genkey` (its `wg pubkey` must be added as a `[Peer]` on the server's `wg0.conf`) |
-| `WG_SERVER_PUBKEY` | WireGuard public key of the server | `wg show wg0 public-key` on the server |
-| `WG_ENDPOINT` | Server WireGuard endpoint, `host:port` | e.g. `deals.example.com:51820` (public IP/host + `ListenPort`) |
-| `WG_SERVER_IP` | Server's private address inside the tunnel | e.g. `10.10.0.1` — the deploy target host |
+| `SERVER_SSH_KNOWN_HOSTS` | `known_hosts` line(s) for the server on port `4422`, **keyed by the WireGuard IP `10.66.66.1`** | On a host already on the VPN (or on the server itself): `ssh-keyscan -p 4422 10.66.66.1` — paste the output verbatim. Do **not** use the public hostname. |
+| `WG_PRIVATE_KEY` | WireGuard private key of the runner peer | `wg genkey` — its `wg pubkey` goes as a `[Peer]` on the server's `wg0.conf` |
+| `WG_SERVER_PUBKEY` | WireGuard public key of the server | `sudo wg show wg0 public-key` on the server |
+| `WG_ENDPOINT` | Server WireGuard endpoint, `host:port` | public IP or DDNS name + `ListenPort`, e.g. `deals.example.com:51820` |
+| `WG_SERVER_IP` | Server's address inside the tunnel — the deploy target | `10.66.66.1` |
 
 Optional repository **variable** `WG_CLIENT_ADDRESS` overrides the runner's
-in-tunnel address (default `10.10.0.2/32`); it must match the `AllowedIPs`
+in-tunnel address (default `10.66.66.10/32`); it must match the `AllowedIPs`
 of the runner peer on the server.
 
 App secrets consumed by the generated `.env`: `POSTGRES_USER`,
@@ -270,18 +284,23 @@ App secrets consumed by the generated `.env`: `POSTGRES_USER`,
 ### Server-side WireGuard peer (one-time)
 
 ```ini
-# /etc/wireguard/wg0.conf  on the server, add:
+# /etc/wireguard/wg0.conf  on the server — Address = 10.66.66.1/24 — add:
 [Peer]
 PublicKey = <wg pubkey of WG_PRIVATE_KEY>
-AllowedIPs = 10.10.0.2/32
+AllowedIPs = 10.66.66.10/32
 ```
 
 ```bash
 sudo wg-quick down wg0 && sudo wg-quick up wg0   # reload
 ```
 
-Make sure CrowdSec / the firewall trusts the tunnel subnet (`10.10.0.0/24`)
-and that `sshd` listens on the WireGuard interface (port `4422`).
+Make sure CrowdSec / the firewall trusts the tunnel subnet (`10.66.66.0/24`)
+and that `sshd` already listens on the WireGuard interface (port `4422`).
+
+> **Out of scope here:** this workflow does **not** touch the server's
+> `sshd_config` or `ufw`/nftables rules for port `4422`. Restricting public
+> `4422` access (option 2A.4) is a separate manual decision for the operator,
+> to be done only with the Oracle Serial Console available as a fallback.
 
 ---
 

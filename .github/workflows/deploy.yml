@@ -37,31 +37,57 @@ jobs:
 
       # ── WireGuard ─────────────────────────────────────────────────────────
       # El túnel se levanta ANTES que cualquier intento SSH. El despliegue
-      # habla con el servidor por su IP privada de WireGuard, de modo que el
-      # tráfico SSH nunca toca la IP pública vigilada por CrowdSec (ssh-bf).
+      # habla con el servidor por su IP privada de WireGuard (10.66.66.1), de
+      # modo que el tráfico SSH nunca toca la IP pública vigilada por CrowdSec
+      # (ssh-bf).
+      #
+      # FAIL-CLOSED: si el túnel no levanta o no hay handshake, el step falla y
+      # aborta el job. NUNCA hay reintento ni fallback por el hostname público.
       - name: Establish WireGuard tunnel
         env:
           WG_PRIVATE_KEY: ${{ secrets.WG_PRIVATE_KEY }}
           WG_SERVER_PUBKEY: ${{ secrets.WG_SERVER_PUBKEY }}
           WG_ENDPOINT: ${{ secrets.WG_ENDPOINT }}
           WG_SERVER_IP: ${{ secrets.WG_SERVER_IP }}
-          WG_CLIENT_ADDRESS: ${{ vars.WG_CLIENT_ADDRESS || '10.10.0.2/32' }}
+          WG_CLIENT_ADDRESS: ${{ vars.WG_CLIENT_ADDRESS || '10.66.66.10/32' }}
         run: |
           set -euo pipefail
+
+          # retry: máx. 3 intentos, backoff 5/15/30s. Sólo cubre flaps de red o
+          # un handshake WireGuard lento — NO rescata un ban real de CrowdSec
+          # (para eso está el propio túnel, que evita la IP pública).
+          retry() {
+            local -a delays=(5 15 30)
+            local max=3 attempt=1
+            until "$@"; do
+              if [ "$attempt" -ge "$max" ]; then
+                echo "retry: fallo definitivo tras $max intentos" >&2
+                return 1
+              fi
+              local d="${delays[$((attempt - 1))]}"
+              echo "retry: intento $attempt/$max fallido; reintento en ${d}s" >&2
+              sleep "$d"
+              attempt=$((attempt + 1))
+            done
+          }
+
           for v in WG_PRIVATE_KEY WG_SERVER_PUBKEY WG_ENDPOINT WG_SERVER_IP; do
             if [ -z "${!v}" ]; then
               echo "ERROR: falta el secret $v en el entorno 'production'."
               exit 1
             fi
           done
+
           sudo apt-get update -qq
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq wireguard-tools
+
           umask 077
           tmp="$(mktemp)"
           {
             echo "[Interface]"
             echo "PrivateKey = ${WG_PRIVATE_KEY}"
             echo "Address = ${WG_CLIENT_ADDRESS}"
+            echo "MTU = 1280"
             echo
             echo "[Peer]"
             echo "PublicKey = ${WG_SERVER_PUBKEY}"
@@ -71,15 +97,26 @@ jobs:
           } > "$tmp"
           sudo install -m 600 "$tmp" /etc/wireguard/wg0.conf
           rm -f "$tmp"
-          sudo wg-quick up wg0
-          for _ in $(seq 1 10); do
-            if ping -c 1 -W 2 "$WG_SERVER_IP" >/dev/null 2>&1; then
-              echo "WireGuard OK: $WG_SERVER_IP alcanzable"
-              exit 0
-            fi
-            sleep 2
-          done
-          echo "AVISO: sin respuesta ICMP de $WG_SERVER_IP (puede estar filtrado); se continúa."
+
+          # Levanta el túnel y confirma handshake real con el servidor.
+          wg_bring_up() {
+            sudo wg-quick down wg0 2>/dev/null || true
+            sudo wg-quick up wg0
+            local i hs
+            for i in $(seq 1 15); do
+              ping -c 1 -W 2 "$WG_SERVER_IP" >/dev/null 2>&1 || true
+              hs="$(sudo wg show wg0 latest-handshakes | awk 'NR==1{print $2}')"
+              if [ -n "$hs" ] && [ "$hs" -gt 0 ]; then
+                echo "WireGuard OK: handshake con $WG_SERVER_IP (t=$hs, i=$i)"
+                return 0
+              fi
+              sleep 2
+            done
+            echo "WireGuard: sin handshake con $WG_SERVER_IP" >&2
+            return 1
+          }
+
+          retry wg_bring_up
 
       # ── SSH ───────────────────────────────────────────────────────────────
       # known_hosts se escribe desde un secret (SERVER_SSH_KNOWN_HOSTS): no se
@@ -128,20 +165,27 @@ jobs:
       - name: Open master SSH connection
         run: |
           set -euo pipefail
+
+          # retry: máx. 3 intentos, backoff 5/15/30s. Cubre flaps de red o un
+          # túnel que aún no está estable — NO rescata un ban real de CrowdSec.
           retry() {
             local -a delays=(5 15 30)
-            local attempt=1
+            local max=3 attempt=1
             until "$@"; do
-              if [ "$attempt" -gt "${#delays[@]}" ]; then
-                echo "retry: fallo tras $((attempt - 1)) reintentos" >&2
+              if [ "$attempt" -ge "$max" ]; then
+                echo "retry: fallo definitivo tras $max intentos" >&2
                 return 1
               fi
-              d="${delays[$((attempt - 1))]}"
-              echo "retry: intento $attempt fallido; reintento en ${d}s" >&2
+              local d="${delays[$((attempt - 1))]}"
+              echo "retry: intento $attempt/$max fallido; reintento en ${d}s" >&2
               sleep "$d"
               attempt=$((attempt + 1))
             done
           }
+
+          # Abre el socket maestro (una sola autenticación). deploy-target
+          # apunta SIEMPRE a la IP WireGuard; si el túnel cayó, esto falla y el
+          # job aborta — sin fallback a la IP pública.
           retry ssh -Nf deploy-target
           ssh -O check deploy-target
 
@@ -195,12 +239,16 @@ jobs:
 
       # Una sola invocación de ssh: mkdir + desempaquetado del bundle completo
       # (compose + .env + script) sobre el socket maestro ya abierto.
+      # Al terminar se borra 'stage/' para no dejar el .env en el workspace del
+      # runner. Ningún secreto se escribe a stdout (todo va a fichero, sin -x).
       - name: Transfer bundle (single SSH pipeline)
         run: |
           set -euo pipefail
           # shellcheck disable=SC2029
           tar -C stage -cf - . \
             | ssh deploy-target "mkdir -p ~/$DEPLOY_DIR && tar -xf - -C ~/$DEPLOY_DIR"
+          rm -rf stage
+          echo "Bundle transferido; stage/ (incl. .env) eliminado del runner."
 
       - name: Run remote deployment
         run: |
@@ -215,3 +263,9 @@ jobs:
       - name: Tear down WireGuard tunnel
         if: always()
         run: sudo wg-quick down wg0 2>/dev/null || true
+
+      # Red de seguridad: borra cualquier resto del bundle (y del .env) aunque
+      # un paso anterior haya fallado antes del rm.
+      - name: Scrub deployment bundle from runner
+        if: always()
+        run: rm -rf stage .env
