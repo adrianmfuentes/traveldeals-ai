@@ -50,6 +50,12 @@ RESEND_API_KEY=re_...
 
 > Generate a strong secret: `openssl rand -base64 32`
 
+> **Password special characters:** `POSTGRES_PASSWORD` may contain any
+> character (`$`, `@`, `:`, `/` …). It is passed to every service as a
+> discrete `PGPASSWORD` value, never embedded in a connection-string URL,
+> so no percent-encoding is needed. In the `.env` file, write a literal
+> `$` as `$$` so Docker Compose does not treat it as a variable reference.
+
 ---
 
 ## 3. Build and start

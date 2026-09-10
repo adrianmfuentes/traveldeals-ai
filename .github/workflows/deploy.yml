@@ -90,15 +90,18 @@ jobs:
               exit 1
             fi
           done
+          # Docker Compose performs ${VAR} interpolation on .env values, so a
+          # literal '$' in a secret (e.g. a password) must be written as '$$'.
+          esc() { printf '%s' "$1" | sed 's/[$]/$$/g'; }
           {
-            printf 'POSTGRES_USER=%s\n'       "$POSTGRES_USER"
-            printf 'POSTGRES_PASSWORD=%s\n'   "$POSTGRES_PASSWORD"
-            printf 'NEXTAUTH_SECRET=%s\n'     "$NEXTAUTH_SECRET"
-            printf 'NEXTAUTH_URL=%s\n'        "$NEXTAUTH_URL"
-            printf 'GROQ_API_KEY=%s\n'        "$GROQ_API_KEY"
-            printf 'SERPAPI_API_KEY=%s\n'     "$SERPAPI_API_KEY"
-            printf 'RESEND_API_KEY=%s\n'      "$RESEND_API_KEY"
-            printf 'NEXT_PUBLIC_APP_URL=%s\n' "$NEXT_PUBLIC_APP_URL"
+            printf 'POSTGRES_USER=%s\n'       "$(esc "$POSTGRES_USER")"
+            printf 'POSTGRES_PASSWORD=%s\n'   "$(esc "$POSTGRES_PASSWORD")"
+            printf 'NEXTAUTH_SECRET=%s\n'     "$(esc "$NEXTAUTH_SECRET")"
+            printf 'NEXTAUTH_URL=%s\n'        "$(esc "$NEXTAUTH_URL")"
+            printf 'GROQ_API_KEY=%s\n'        "$(esc "$GROQ_API_KEY")"
+            printf 'SERPAPI_API_KEY=%s\n'     "$(esc "$SERPAPI_API_KEY")"
+            printf 'RESEND_API_KEY=%s\n'      "$(esc "$RESEND_API_KEY")"
+            printf 'NEXT_PUBLIC_APP_URL=%s\n' "$(esc "$NEXT_PUBLIC_APP_URL")"
           } > .env.prod
           scp -P ${{ env.SSH_PORT }} .env.prod "$SERVER_USER@$SERVER_HOST:~/${{ env.DEPLOY_DIR }}/.env"
 

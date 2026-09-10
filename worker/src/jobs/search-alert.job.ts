@@ -2,6 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import IORedis from "ioredis";
 import { createLogger, toLogError } from "@platform/core/lib/logger";
+import { resolvePgConfig } from "../lib/pg-config";
 import { searchFlights } from "../providers/flight-provider";
 import { searchHotels } from "../providers/hotel-provider";
 import { analyzeDealWithAI } from "../services/ai-analyzer";
@@ -10,7 +11,7 @@ import { addDays, format, startOfDay, endOfDay } from "date-fns";
 
 const log = createLogger("Job");
 
-const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
+const prisma = new PrismaClient({ adapter: new PrismaPg(resolvePgConfig()) });
 
 type JobResult = { status: "done" | "no_flights" | "error"; dealsCount?: number };
 

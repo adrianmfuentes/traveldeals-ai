@@ -3,6 +3,7 @@ import IORedis from "ioredis";
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { createWorker, createScheduler } from "@platform/core/worker";
+import { resolvePgConfig } from "./lib/pg-config";
 import { createLogger } from "@platform/core/lib/logger";
 import { processSearchAlert } from "./jobs/search-alert.job";
 
@@ -12,7 +13,7 @@ const connection = new IORedis(process.env.REDIS_URL ?? "redis://localhost:6379"
   maxRetriesPerRequest: null,
 });
 
-const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
+const prisma = new PrismaClient({ adapter: new PrismaPg(resolvePgConfig()) });
 
 const { queue } = createWorker({
   queueName: "search-alerts",
