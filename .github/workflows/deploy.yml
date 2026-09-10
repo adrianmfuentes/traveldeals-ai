@@ -16,14 +16,18 @@ on:
 env:
   REGISTRY: ghcr.io
   DEPLOY_DIR: traveldeals-ai
-  SSH_PORT: 4422
+  SSH_PORT: "4422"
 
 jobs:
   deploy:
     name: Deploy to Server
     if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     environment: production
+    concurrency:
+      group: deploy-traveldeals
+      cancel-in-progress: false
     permissions:
       contents: read
       packages: read
@@ -31,54 +35,118 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
-      - name: Configure SSH
+      # ── WireGuard ─────────────────────────────────────────────────────────
+      # El túnel se levanta ANTES que cualquier intento SSH. El despliegue
+      # habla con el servidor por su IP privada de WireGuard, de modo que el
+      # tráfico SSH nunca toca la IP pública vigilada por CrowdSec (ssh-bf).
+      - name: Establish WireGuard tunnel
         env:
-          SERVER_HOST: ${{ secrets.SERVER_HOST || vars.SERVER_HOST }}
-          SERVER_USER: ${{ secrets.SERVER_USER || vars.SERVER_USER }}
-          SERVER_SSH_KEY: ${{ secrets.SERVER_SSH_KEY || vars.SERVER_SSH_KEY }}
+          WG_PRIVATE_KEY: ${{ secrets.WG_PRIVATE_KEY }}
+          WG_SERVER_PUBKEY: ${{ secrets.WG_SERVER_PUBKEY }}
+          WG_ENDPOINT: ${{ secrets.WG_ENDPOINT }}
+          WG_SERVER_IP: ${{ secrets.WG_SERVER_IP }}
+          WG_CLIENT_ADDRESS: ${{ vars.WG_CLIENT_ADDRESS || '10.10.0.2/32' }}
         run: |
-          if [ -z "$SERVER_HOST" ] || [ -z "$SERVER_USER" ] || [ -z "$SERVER_SSH_KEY" ]; then
-            echo "ERROR: SERVER_HOST, SERVER_USER, or SERVER_SSH_KEY is not set in the 'production' environment."
-            echo "Add them under Settings > Environments > production > Secrets (or Secrets > Actions for repo-level)."
-            exit 1
-          fi
+          set -euo pipefail
+          for v in WG_PRIVATE_KEY WG_SERVER_PUBKEY WG_ENDPOINT WG_SERVER_IP; do
+            if [ -z "${!v}" ]; then
+              echo "ERROR: falta el secret $v en el entorno 'production'."
+              exit 1
+            fi
+          done
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq wireguard-tools
+          umask 077
+          tmp="$(mktemp)"
+          {
+            echo "[Interface]"
+            echo "PrivateKey = ${WG_PRIVATE_KEY}"
+            echo "Address = ${WG_CLIENT_ADDRESS}"
+            echo
+            echo "[Peer]"
+            echo "PublicKey = ${WG_SERVER_PUBKEY}"
+            echo "Endpoint = ${WG_ENDPOINT}"
+            echo "AllowedIPs = ${WG_SERVER_IP}/32"
+            echo "PersistentKeepalive = 25"
+          } > "$tmp"
+          sudo install -m 600 "$tmp" /etc/wireguard/wg0.conf
+          rm -f "$tmp"
+          sudo wg-quick up wg0
+          for _ in $(seq 1 10); do
+            if ping -c 1 -W 2 "$WG_SERVER_IP" >/dev/null 2>&1; then
+              echo "WireGuard OK: $WG_SERVER_IP alcanzable"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "AVISO: sin respuesta ICMP de $WG_SERVER_IP (puede estar filtrado); se continúa."
+
+      # ── SSH ───────────────────────────────────────────────────────────────
+      # known_hosts se escribe desde un secret (SERVER_SSH_KNOWN_HOSTS): no se
+      # ejecuta ssh-keyscan y StrictHostKeyChecking sigue en 'yes'. Todas las
+      # conexiones SSH del job se multiplexan sobre un único socket maestro.
+      - name: Configure SSH (single multiplexed connection)
+        env:
+          SERVER_USER: ${{ secrets.SERVER_USER || vars.SERVER_USER }}
+          SERVER_SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
+          SERVER_SSH_KNOWN_HOSTS: ${{ secrets.SERVER_SSH_KNOWN_HOSTS }}
+          WG_SERVER_IP: ${{ secrets.WG_SERVER_IP }}
+        run: |
+          set -euo pipefail
+          for v in SERVER_USER SERVER_SSH_KEY SERVER_SSH_KNOWN_HOSTS WG_SERVER_IP; do
+            if [ -z "${!v}" ]; then
+              echo "ERROR: falta el secret/var $v en el entorno 'production'."
+              exit 1
+            fi
+          done
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
-          printf '%s\n' "$SERVER_SSH_KEY" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          if ! ssh-keyscan -T 15 -H -p ${{ env.SSH_PORT }} "$SERVER_HOST" >> ~/.ssh/known_hosts 2>/dev/null; then
-            echo "ssh-keyscan on port ${{ env.SSH_PORT }} failed; disabling StrictHostKeyChecking for this host"
-            cat >> ~/.ssh/config << SSHCONF
-          Host $SERVER_HOST
-            StrictHostKeyChecking no
-            UserKnownHostsFile /dev/null
-            IdentityFile ~/.ssh/id_rsa
-            LogLevel ERROR
-          SSHCONF
-          fi
+          printf '%s\n' "$SERVER_SSH_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          printf '%s\n' "$SERVER_SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+          {
+            echo "Host deploy-target"
+            echo "  HostName $WG_SERVER_IP"
+            echo "  User $SERVER_USER"
+            echo "  Port $SSH_PORT"
+            echo "  IdentityFile ~/.ssh/id_deploy"
+            echo "  IdentitiesOnly yes"
+            echo "  StrictHostKeyChecking yes"
+            echo "  UserKnownHostsFile ~/.ssh/known_hosts"
+            echo "  ControlMaster auto"
+            echo "  ControlPath ~/.ssh/cm-%r@%h:%p"
+            echo "  ControlPersist 300s"
+            echo "  ConnectTimeout 30"
+            echo "  ServerAliveInterval 15"
+            echo "  ServerAliveCountMax 4"
+          } > ~/.ssh/config
+          chmod 600 ~/.ssh/config
 
-      - name: Create deployment directory
-        env:
-          SERVER_USER: ${{ secrets.SERVER_USER || vars.SERVER_USER }}
-          SERVER_HOST: ${{ secrets.SERVER_HOST || vars.SERVER_HOST }}
+      # Único evento de autenticación SSH de todo el despliegue. El resto de
+      # pasos reutilizan este socket maestro (no hay re-autenticación).
+      - name: Open master SSH connection
         run: |
-          ssh -o ConnectTimeout=30 -o ServerAliveInterval=15 -o BatchMode=yes -p ${{ env.SSH_PORT }} "$SERVER_USER@$SERVER_HOST" "mkdir -p ~/${{ env.DEPLOY_DIR }}"
+          set -euo pipefail
+          retry() {
+            local -a delays=(5 15 30)
+            local attempt=1
+            until "$@"; do
+              if [ "$attempt" -gt "${#delays[@]}" ]; then
+                echo "retry: fallo tras $((attempt - 1)) reintentos" >&2
+                return 1
+              fi
+              d="${delays[$((attempt - 1))]}"
+              echo "retry: intento $attempt fallido; reintento en ${d}s" >&2
+              sleep "$d"
+              attempt=$((attempt + 1))
+            done
+          }
+          retry ssh -Nf deploy-target
+          ssh -O check deploy-target
 
-      - name: Copy Docker Compose file
+      - name: Prepare deployment bundle
         env:
-          SERVER_USER: ${{ secrets.SERVER_USER || vars.SERVER_USER }}
-          SERVER_HOST: ${{ secrets.SERVER_HOST || vars.SERVER_HOST }}
-        run: |
-          # scp on ubuntu-latest (OpenSSH 9+) defaults to the SFTP protocol and
-          # hangs when the server lacks the sftp subsystem. Pipe over ssh instead
-          # (same proven path as the previous step, BatchMode = fail, never prompt).
-          ssh -o BatchMode=yes -o ConnectTimeout=30 -o ServerAliveInterval=15 -p ${{ env.SSH_PORT }} \
-            "$SERVER_USER@$SERVER_HOST" "cat > ~/${{ env.DEPLOY_DIR }}/docker-compose.yml" < docker-compose.prod.yml
-
-      - name: Create .env file and copy to server
-        env:
-          SERVER_USER: ${{ secrets.SERVER_USER || vars.SERVER_USER }}
-          SERVER_HOST: ${{ secrets.SERVER_HOST || vars.SERVER_HOST }}
           POSTGRES_USER: ${{ secrets.POSTGRES_USER || vars.POSTGRES_USER }}
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD || vars.POSTGRES_PASSWORD }}
           NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET || vars.NEXTAUTH_SECRET }}
@@ -87,16 +155,26 @@ jobs:
           SERPAPI_API_KEY: ${{ secrets.SERPAPI_API_KEY || vars.SERPAPI_API_KEY }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY || vars.RESEND_API_KEY }}
           NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL || vars.NEXT_PUBLIC_APP_URL }}
+          GHCR_USER: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CLEAN_VOLUMES: ${{ inputs.clean_volumes }}
         run: |
-          for name in POSTGRES_USER POSTGRES_PASSWORD NEXTAUTH_SECRET NEXTAUTH_URL GROQ_API_KEY SERPAPI_API_KEY NEXT_PUBLIC_APP_URL; do
+          set -euo pipefail
+          for name in POSTGRES_USER POSTGRES_PASSWORD NEXTAUTH_SECRET NEXTAUTH_URL \
+                      GROQ_API_KEY SERPAPI_API_KEY NEXT_PUBLIC_APP_URL; do
             if [ -z "${!name}" ]; then
-              echo "ERROR: $name is not set. Add it under Settings > Environments > production > Secrets (or Secrets > Actions for repo-level)."
+              echo "ERROR: $name no está definido en el entorno 'production'."
               exit 1
             fi
           done
-          # Docker Compose performs ${VAR} interpolation on .env values, so a
-          # literal '$' in a secret (e.g. a password) must be written as '$$'.
+          # Docker Compose interpola ${VAR} en los valores del .env, así que un
+          # '$' literal en un secreto (p. ej. una contraseña) se escribe '$$'.
           esc() { printf '%s' "$1" | sed 's/[$]/$$/g'; }
+          rm -rf stage
+          mkdir -p stage
+          cp docker-compose.prod.yml stage/docker-compose.yml
+          cp deploy/remote-deploy.sh stage/remote-deploy.sh
+          chmod +x stage/remote-deploy.sh
           {
             printf 'POSTGRES_USER=%s\n'       "$(esc "$POSTGRES_USER")"
             printf 'POSTGRES_PASSWORD=%s\n'   "$(esc "$POSTGRES_PASSWORD")"
@@ -104,68 +182,36 @@ jobs:
             printf 'NEXTAUTH_URL=%s\n'        "$(esc "$NEXTAUTH_URL")"
             printf 'GROQ_API_KEY=%s\n'        "$(esc "$GROQ_API_KEY")"
             printf 'SERPAPI_API_KEY=%s\n'     "$(esc "$SERPAPI_API_KEY")"
-            printf 'RESEND_API_KEY=%s\n'      "$(esc "$RESEND_API_KEY")"
+            printf 'RESEND_API_KEY=%s\n'      "$(esc "${RESEND_API_KEY:-}")"
             printf 'NEXT_PUBLIC_APP_URL=%s\n' "$(esc "$NEXT_PUBLIC_APP_URL")"
-          } > .env.prod
-          ssh -o BatchMode=yes -o ConnectTimeout=30 -o ServerAliveInterval=15 -p ${{ env.SSH_PORT }} \
-            "$SERVER_USER@$SERVER_HOST" "cat > ~/${{ env.DEPLOY_DIR }}/.env" < .env.prod
+          } > stage/.env
+          {
+            printf 'REGISTRY=%s\n'      "$REGISTRY"
+            printf 'GHCR_USER=%s\n'     "$GHCR_USER"
+            printf 'GHCR_TOKEN=%s\n'    "$GHCR_TOKEN"
+            printf 'CLEAN_VOLUMES=%s\n' "${CLEAN_VOLUMES:-false}"
+          } > stage/.deploy.env
+          chmod 600 stage/.env stage/.deploy.env
 
-      - name: Pull latest images
-        env:
-          SERVER_USER: ${{ secrets.SERVER_USER || vars.SERVER_USER }}
-          SERVER_HOST: ${{ secrets.SERVER_HOST || vars.SERVER_HOST }}
-          REGISTRY: ${{ env.REGISTRY }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_ACTOR: ${{ github.actor }}
+      # Una sola invocación de ssh: mkdir + desempaquetado del bundle completo
+      # (compose + .env + script) sobre el socket maestro ya abierto.
+      - name: Transfer bundle (single SSH pipeline)
         run: |
-          ssh -o BatchMode=yes -o ConnectTimeout=30 -o ServerAliveInterval=15 -p ${{ env.SSH_PORT }} "$SERVER_USER@$SERVER_HOST" "cd ~/${{ env.DEPLOY_DIR }} && \
-            echo '$GITHUB_TOKEN' | docker login $REGISTRY -u '$GITHUB_ACTOR' --password-stdin && \
-            docker compose pull"
+          set -euo pipefail
+          # shellcheck disable=SC2029
+          tar -C stage -cf - . \
+            | ssh deploy-target "mkdir -p ~/$DEPLOY_DIR && tar -xf - -C ~/$DEPLOY_DIR"
 
-      - name: Clean data volumes
-        if: inputs.clean_volumes == true
-        env:
-          SERVER_USER: ${{ secrets.SERVER_USER || vars.SERVER_USER }}
-          SERVER_HOST: ${{ secrets.SERVER_HOST || vars.SERVER_HOST }}
+      - name: Run remote deployment
         run: |
-          ssh -o BatchMode=yes -o ConnectTimeout=30 -o ServerAliveInterval=15 -p ${{ env.SSH_PORT }} "$SERVER_USER@$SERVER_HOST" "cd ~/${{ env.DEPLOY_DIR }} && \
-            docker compose down --volumes --remove-orphans 2>/dev/null && \
-            echo 'traveldeals-ai data volumes (postgres-data, redis-data) deleted.'"
+          set -euo pipefail
+          # shellcheck disable=SC2029
+          ssh deploy-target "DEPLOY_DIR=\$HOME/$DEPLOY_DIR bash ~/$DEPLOY_DIR/remote-deploy.sh"
 
-      - name: Restart services
-        env:
-          SERVER_USER: ${{ secrets.SERVER_USER || vars.SERVER_USER }}
-          SERVER_HOST: ${{ secrets.SERVER_HOST || vars.SERVER_HOST }}
-        run: |
-          ssh -o BatchMode=yes -o ConnectTimeout=30 -o ServerAliveInterval=15 -p ${{ env.SSH_PORT }} "$SERVER_USER@$SERVER_HOST" "cd ~/${{ env.DEPLOY_DIR }} && \
-            docker compose down --remove-orphans 2>/dev/null; \
-            sleep 3; docker compose up -d"
+      - name: Close master SSH connection
+        if: always()
+        run: ssh -O exit deploy-target 2>/dev/null || true
 
-      - name: Health check
-        env:
-          SERVER_USER: ${{ secrets.SERVER_USER || vars.SERVER_USER }}
-          SERVER_HOST: ${{ secrets.SERVER_HOST || vars.SERVER_HOST }}
-        run: |
-          ssh -o BatchMode=yes -o ConnectTimeout=30 -o ServerAliveInterval=15 -p ${{ env.SSH_PORT }} "$SERVER_USER@$SERVER_HOST" " \
-            cd ~/${{ env.DEPLOY_DIR }}; \
-            healthy=false; \
-            for i in \$(seq 1 30); do \
-              status=\$(docker inspect --format='{{.State.Health.Status}}' \$(docker compose ps -q app) 2>/dev/null); \
-              if [ \"\$status\" = 'healthy' ]; then \
-                echo 'App is healthy'; healthy=true; break; \
-              fi; \
-              echo \"Waiting for app... (status: \$status)\"; sleep 2; \
-            done; \
-            if [ \"\$healthy\" != 'true' ]; then \
-              echo 'ERROR: App did not become healthy. Showing app container logs (last 50 lines):'; \
-              docker compose logs --tail=50 app 2>&1; \
-              echo '---'; \
-              exit 1; \
-            fi"
-
-      - name: Show container status
-        env:
-          SERVER_USER: ${{ secrets.SERVER_USER || vars.SERVER_USER }}
-          SERVER_HOST: ${{ secrets.SERVER_HOST || vars.SERVER_HOST }}
-        run: |
-          ssh -o BatchMode=yes -o ConnectTimeout=30 -o ServerAliveInterval=15 -p ${{ env.SSH_PORT }} "$SERVER_USER@$SERVER_HOST" "cd ~/${{ env.DEPLOY_DIR }} && docker compose ps"
+      - name: Tear down WireGuard tunnel
+        if: always()
+        run: sudo wg-quick down wg0 2>/dev/null || true
