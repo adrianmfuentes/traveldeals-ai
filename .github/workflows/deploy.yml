@@ -69,7 +69,11 @@ jobs:
           SERVER_USER: ${{ secrets.SERVER_USER || vars.SERVER_USER }}
           SERVER_HOST: ${{ secrets.SERVER_HOST || vars.SERVER_HOST }}
         run: |
-          scp -P ${{ env.SSH_PORT }} docker-compose.prod.yml "$SERVER_USER@$SERVER_HOST:~/${{ env.DEPLOY_DIR }}/docker-compose.yml"
+          # scp on ubuntu-latest (OpenSSH 9+) defaults to the SFTP protocol and
+          # hangs when the server lacks the sftp subsystem. Pipe over ssh instead
+          # (same proven path as the previous step, BatchMode = fail, never prompt).
+          ssh -o BatchMode=yes -o ConnectTimeout=30 -o ServerAliveInterval=15 -p ${{ env.SSH_PORT }} \
+            "$SERVER_USER@$SERVER_HOST" "cat > ~/${{ env.DEPLOY_DIR }}/docker-compose.yml" < docker-compose.prod.yml
 
       - name: Create .env file and copy to server
         env:
@@ -103,7 +107,8 @@ jobs:
             printf 'RESEND_API_KEY=%s\n'      "$(esc "$RESEND_API_KEY")"
             printf 'NEXT_PUBLIC_APP_URL=%s\n' "$(esc "$NEXT_PUBLIC_APP_URL")"
           } > .env.prod
-          scp -P ${{ env.SSH_PORT }} .env.prod "$SERVER_USER@$SERVER_HOST:~/${{ env.DEPLOY_DIR }}/.env"
+          ssh -o BatchMode=yes -o ConnectTimeout=30 -o ServerAliveInterval=15 -p ${{ env.SSH_PORT }} \
+            "$SERVER_USER@$SERVER_HOST" "cat > ~/${{ env.DEPLOY_DIR }}/.env" < .env.prod
 
       - name: Pull latest images
         env:
@@ -113,7 +118,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_ACTOR: ${{ github.actor }}
         run: |
-          ssh -p ${{ env.SSH_PORT }} "$SERVER_USER@$SERVER_HOST" "cd ~/${{ env.DEPLOY_DIR }} && \
+          ssh -o BatchMode=yes -o ConnectTimeout=30 -o ServerAliveInterval=15 -p ${{ env.SSH_PORT }} "$SERVER_USER@$SERVER_HOST" "cd ~/${{ env.DEPLOY_DIR }} && \
             echo '$GITHUB_TOKEN' | docker login $REGISTRY -u '$GITHUB_ACTOR' --password-stdin && \
             docker compose pull"
 
@@ -123,7 +128,7 @@ jobs:
           SERVER_USER: ${{ secrets.SERVER_USER || vars.SERVER_USER }}
           SERVER_HOST: ${{ secrets.SERVER_HOST || vars.SERVER_HOST }}
         run: |
-          ssh -p ${{ env.SSH_PORT }} "$SERVER_USER@$SERVER_HOST" "cd ~/${{ env.DEPLOY_DIR }} && \
+          ssh -o BatchMode=yes -o ConnectTimeout=30 -o ServerAliveInterval=15 -p ${{ env.SSH_PORT }} "$SERVER_USER@$SERVER_HOST" "cd ~/${{ env.DEPLOY_DIR }} && \
             docker compose down --volumes --remove-orphans 2>/dev/null && \
             echo 'traveldeals-ai data volumes (postgres-data, redis-data) deleted.'"
 
@@ -132,7 +137,7 @@ jobs:
           SERVER_USER: ${{ secrets.SERVER_USER || vars.SERVER_USER }}
           SERVER_HOST: ${{ secrets.SERVER_HOST || vars.SERVER_HOST }}
         run: |
-          ssh -p ${{ env.SSH_PORT }} "$SERVER_USER@$SERVER_HOST" "cd ~/${{ env.DEPLOY_DIR }} && \
+          ssh -o BatchMode=yes -o ConnectTimeout=30 -o ServerAliveInterval=15 -p ${{ env.SSH_PORT }} "$SERVER_USER@$SERVER_HOST" "cd ~/${{ env.DEPLOY_DIR }} && \
             docker compose down --remove-orphans 2>/dev/null; \
             sleep 3; docker compose up -d"
 
@@ -141,7 +146,7 @@ jobs:
           SERVER_USER: ${{ secrets.SERVER_USER || vars.SERVER_USER }}
           SERVER_HOST: ${{ secrets.SERVER_HOST || vars.SERVER_HOST }}
         run: |
-          ssh -p ${{ env.SSH_PORT }} "$SERVER_USER@$SERVER_HOST" " \
+          ssh -o BatchMode=yes -o ConnectTimeout=30 -o ServerAliveInterval=15 -p ${{ env.SSH_PORT }} "$SERVER_USER@$SERVER_HOST" " \
             cd ~/${{ env.DEPLOY_DIR }}; \
             healthy=false; \
             for i in \$(seq 1 30); do \
@@ -163,4 +168,4 @@ jobs:
           SERVER_USER: ${{ secrets.SERVER_USER || vars.SERVER_USER }}
           SERVER_HOST: ${{ secrets.SERVER_HOST || vars.SERVER_HOST }}
         run: |
-          ssh -p ${{ env.SSH_PORT }} "$SERVER_USER@$SERVER_HOST" "cd ~/${{ env.DEPLOY_DIR }} && docker compose ps"
+          ssh -o BatchMode=yes -o ConnectTimeout=30 -o ServerAliveInterval=15 -p ${{ env.SSH_PORT }} "$SERVER_USER@$SERVER_HOST" "cd ~/${{ env.DEPLOY_DIR }} && docker compose ps"
