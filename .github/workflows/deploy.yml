@@ -81,8 +81,7 @@ jobs:
             echo "[Peer]"
             echo "PublicKey = ${WG_SERVER_PUBKEY}"
             echo "Endpoint = ${WG_ENDPOINT}"
-            echo "AllowedIPs = ${WG_SERVER_IP}/32"
-            echo "PersistentKeepalive = 25"
+            echo "AllowedIPs = 10.66.66.1/32"
           } > "$tmp"
           sudo install -m 600 "$tmp" /etc/wireguard/wg0.conf
           rm -f "$tmp"
