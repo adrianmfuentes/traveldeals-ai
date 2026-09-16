@@ -40,6 +40,11 @@ export default function RegisterPage() {
         return;
       }
 
+      if (!res.ok) {
+        setError(data.error ?? t("connectionError"));
+        return;
+      }
+
       router.push(`/login?registered=1`);
     } catch {
       setError(t("connectionError"));

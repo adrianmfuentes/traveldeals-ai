@@ -4,6 +4,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { rateLimit } from "@/lib/rate-limit";
 import { createLogger, toLogError } from "@/lib/logger";
+import { sendEmail } from "@platform/core/lib/email";
 
 const log = createLogger("API:auth");
 
@@ -60,6 +61,21 @@ export async function POST(req: NextRequest) {
       },
       select: { id: true },
     });
+
+    try {
+      await sendEmail({
+        from: "TravelDeals AI <noreply@traveldeals.ai>",
+        to: data.email.toLowerCase(),
+        subject: "Bienvenido a TravelDeals AI",
+        html: `
+          <p>Hola${data.name ? ` ${data.name}` : ""},</p>
+          <p>Tu cuenta en TravelDeals AI se ha creado correctamente. Ya puedes iniciar sesión y configurar tus alertas de viaje.</p>
+        `,
+        text: `Hola${data.name ? ` ${data.name}` : ""}, tu cuenta en TravelDeals AI se ha creado correctamente. Ya puedes iniciar sesión y configurar tus alertas de viaje.`,
+      });
+    } catch (emailErr) {
+      log.error("Failed to send registration confirmation email", toLogError(emailErr));
+    }
 
     return NextResponse.json(
       { message: "Cuenta creada correctamente." },
